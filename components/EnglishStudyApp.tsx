@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import {
   useState,
   useRef,
@@ -44,8 +45,13 @@ import {
   speakKoreanMean,
 } from "@/lib/audio";
 import { GROUPS } from "@/data/groups.mjs";
+import { makeWordId } from "@/lib/playlists";
+import type { WordId } from "@/lib/playlists";
+import { useHiddenWords } from "@/hooks/useHiddenWords";
 import PlaylistSection from "@/components/PlaylistSection";
 import SettingsScreen from "@/components/SettingsScreen";
+import HiddenWordsPanel from "@/components/HiddenWordsPanel";
+import SwipeableWordRow from "@/components/SwipeableWordRow";
 import type { StudyItem as PlaylistStudyItem } from "@/lib/playlists";
 
 type Tab = "study" | "quiz" | "playlist";
@@ -185,6 +191,13 @@ export default function EnglishStudyApp() {
   } | null>(null);
   const [playlistReset, setPlaylistReset] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
+  const {
+    hiddenIds,
+    hide: hideWord,
+    restore: restoreWord,
+    restoreAll: restoreAllHidden,
+    count: hiddenCount,
+  } = useHiddenWords();
   const settingsReturnRef = useRef<{
     tab: Tab;
     started: boolean;
@@ -270,9 +283,13 @@ export default function EnglishStudyApp() {
   const items = useMemo(
     () =>
       GROUPS.filter((g) => selected.has(g.id)).flatMap((g) =>
-        g.words.map((w) => ({ ...w, concept: g.concept, conceptKo: g.ko })),
+        g.words
+          .filter(
+            (w) => !hiddenIds.has(makeWordId(g.id, w.word, w.pos)),
+          )
+          .map((w) => ({ ...w, concept: g.concept, conceptKo: g.ko })),
       ),
-    [selected],
+    [selected, hiddenIds],
   );
 
   if (!levelReady) {
@@ -297,20 +314,31 @@ export default function EnglishStudyApp() {
       style={{
         background: C.bg,
         color: C.text,
-        minHeight: "100vh",
+        minHeight: "100dvh",
+        display: "flex",
+        flexDirection: "column",
         fontFamily: "system-ui, -apple-system, sans-serif",
       }}
     >
-      <div style={{ maxWidth: 480, margin: "0 auto", padding: "0 0 40px" }}>
+      <div
+        style={{
+          maxWidth: 480,
+          margin: "0 auto",
+          width: "100%",
+          flex: 1,
+          minHeight: 0,
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
         {/* 헤더 */}
         <header
           style={{
             padding: "14px 20px",
             borderBottom: `1px solid ${C.border}`,
-            position: "sticky",
-            top: "env(safe-area-inset-top, 0px)",
+            flexShrink: 0,
             background: C.bg,
-            zIndex: 10,
+            zIndex: 30,
           }}
         >
           <button
@@ -327,7 +355,7 @@ export default function EnglishStudyApp() {
               textAlign: "left",
             }}
           >
-            <img
+            <Image
               src="/logos/logo_commute.png"
               alt="오늘의 단어"
               width={36}
@@ -450,6 +478,14 @@ export default function EnglishStudyApp() {
           )}
         </header>
 
+        <div
+          style={{
+            flex: 1,
+            minHeight: 0,
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
         {showSettings ? (
           <SettingsScreen onBack={closeSettings} />
         ) : (
@@ -486,6 +522,11 @@ export default function EnglishStudyApp() {
                   if (items.length) setStarted(true);
                 }}
                 ctaLabel="학습 시작"
+                hiddenIds={hiddenIds}
+                hiddenCount={hiddenCount}
+                onHideWord={hideWord}
+                onRestoreWord={restoreWord}
+                onRestoreAllHidden={restoreAllHidden}
               />
             )}
             {!playlistSession && tab === "study" && started && (
@@ -513,6 +554,11 @@ export default function EnglishStudyApp() {
                 minNote={
                   items.length < 4 ? "4개 이상 단어를 선택하면 더 좋아" : null
                 }
+                hiddenIds={hiddenIds}
+                hiddenCount={hiddenCount}
+                onHideWord={hideWord}
+                onRestoreWord={restoreWord}
+                onRestoreAllHidden={restoreAllHidden}
               />
             )}
             {!playlistSession && tab === "quiz" && started && (
@@ -526,6 +572,11 @@ export default function EnglishStudyApp() {
             {!playlistSession && tab === "playlist" && (
               <PlaylistSection
                 resetToken={playlistReset}
+                hiddenIds={hiddenIds}
+                hiddenCount={hiddenCount}
+                onHideWord={hideWord}
+                onRestoreWord={restoreWord}
+                onRestoreAllHidden={restoreAllHidden}
                 onStartStudy={(playlistItems: PlaylistStudyItem[]) => {
                   cancelPlayback();
                   setPlaylistSession({ mode: "study", items: playlistItems });
@@ -538,6 +589,7 @@ export default function EnglishStudyApp() {
             )}
           </>
         )}
+        </div>
       </div>
     </div>
   );
@@ -574,7 +626,7 @@ function LevelSelectScreen({
             marginBottom: 28,
           }}
         >
-          <img
+          <Image
             src="/logos/logo_commute.png"
             alt="오늘의 단어"
             width={56}
@@ -705,6 +757,11 @@ function GroupPicker({
   count,
   ctaLabel,
   minNote,
+  hiddenIds,
+  hiddenCount,
+  onHideWord,
+  onRestoreWord,
+  onRestoreAllHidden,
 }: {
   selected: Set<number>;
   toggleGroup: (id: number) => void;
@@ -714,11 +771,20 @@ function GroupPicker({
   count: number;
   ctaLabel: string;
   minNote?: string | null;
+  hiddenIds: Set<WordId>;
+  hiddenCount: number;
+  onHideWord: (id: WordId) => void;
+  onRestoreWord: (id: WordId) => void;
+  onRestoreAllHidden: () => void;
 }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortMode, setSortMode] = useState<"default" | "az">("default");
+  const [showHidden, setShowHidden] = useState(false);
+  const [undo, setUndo] = useState<{ id: WordId; label: string } | null>(null);
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   type PickerWord = {
+    id: WordId;
     groupId: number;
     concept: string;
     conceptKo: string;
@@ -734,6 +800,7 @@ function GroupPicker({
     () =>
       GROUPS.flatMap((g, gi) =>
         g.words.map((w, wi) => ({
+          id: makeWordId(g.id, w.word, w.pos),
           groupId: g.id,
           concept: g.concept,
           conceptKo: g.ko,
@@ -756,9 +823,8 @@ function GroupPicker({
       w.word.toLowerCase().includes(query) ||
       w.mean.toLowerCase().includes(query);
 
-    const base = query
-      ? allPickerWords.filter(matchesQuery)
-      : [...allPickerWords];
+    const base = (query ? allPickerWords.filter(matchesQuery) : [...allPickerWords])
+      .filter((w) => !hiddenIds.has(w.id));
 
     if (sortMode === "az") {
       return base.sort((a, b) =>
@@ -766,7 +832,35 @@ function GroupPicker({
       );
     }
     return base;
-  }, [allPickerWords, query, sortMode]);
+  }, [allPickerWords, query, sortMode, hiddenIds]);
+
+  const visibleWordCount = (groupId: number) => {
+    const g = GROUPS.find((x) => x.id === groupId);
+    if (!g) return 0;
+    return g.words.filter(
+      (w) => !hiddenIds.has(makeWordId(g.id, w.word, w.pos)),
+    ).length;
+  };
+
+  const handleHideWord = (id: WordId, label: string) => {
+    onHideWord(id);
+    setUndo({ id, label });
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    undoTimer.current = setTimeout(() => setUndo(null), 4000);
+  };
+
+  const handleUndo = () => {
+    if (!undo) return;
+    onRestoreWord(undo.id);
+    setUndo(null);
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (undoTimer.current) clearTimeout(undoTimer.current);
+    };
+  }, []);
 
   const checkboxStyle = (on: boolean): CSSProperties => ({
     width: 22,
@@ -796,12 +890,41 @@ function GroupPicker({
 
   return (
     <>
+      {showHidden ? (
+        <div
+          style={{
+            flex: 1,
+            minHeight: 0,
+            overflowY: "auto",
+            WebkitOverflowScrolling: "touch",
+          }}
+        >
+          <HiddenWordsPanel
+            hiddenIds={hiddenIds}
+            onBack={() => setShowHidden(false)}
+            onRestore={onRestoreWord}
+            onRestoreAll={onRestoreAllHidden}
+          />
+        </div>
+      ) : (
       <div
         style={{
-          padding: "16px 20px",
-          paddingBottom: "calc(108px + env(safe-area-inset-bottom, 0px))",
+          flex: 1,
+          minHeight: 0,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
         }}
       >
+        <div
+          style={{
+            flexShrink: 0,
+            padding: "16px 20px 12px",
+            background: C.bg,
+            borderBottom: `1px solid ${C.border}`,
+            zIndex: 20,
+          }}
+        >
         <div style={{ position: "relative", marginBottom: 12 }}>
           <Search
             size={16}
@@ -866,12 +989,32 @@ function GroupPicker({
           ))}
         </div>
 
+        <button
+          type="button"
+          onClick={() => setShowHidden(true)}
+          style={{
+            display: "block",
+            width: "100%",
+            marginBottom: 12,
+            padding: "9px 12px",
+            borderRadius: 8,
+            border: `1px solid ${C.border}`,
+            background: C.card,
+            color: hiddenCount > 0 ? C.gold : C.muted,
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: "pointer",
+            textAlign: "left",
+          }}
+        >
+          {hiddenCount > 0 ? `숨김 ${hiddenCount}개 보기` : "숨긴 단어 보기"}
+        </button>
+
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            marginBottom: 12,
           }}
         >
           <span style={{ fontSize: 13, color: C.muted }}>
@@ -896,7 +1039,18 @@ function GroupPicker({
             {allSelected ? "전체 해제" : "전체 선택"}
           </button>
         </div>
+        </div>
 
+        <div
+          style={{
+            flex: 1,
+            minHeight: 0,
+            overflowY: "auto",
+            WebkitOverflowScrolling: "touch",
+            padding: "12px 20px",
+            paddingBottom: "calc(108px + env(safe-area-inset-bottom, 0px))",
+          }}
+        >
         <div
           key={query || `sort-${sortMode}`}
           style={{ display: "flex", flexDirection: "column", gap: 8 }}
@@ -934,7 +1088,7 @@ function GroupPicker({
                       color: C.muted,
                     }}
                   >
-                    {g.words.length}
+                    {visibleWordCount(g.id)}
                   </span>
                 </button>
               );
@@ -943,10 +1097,16 @@ function GroupPicker({
             displayedWords.map((w) => {
               const on = selected.has(w.groupId);
               return (
-                <button
+                <SwipeableWordRow
                   key={w.order}
+                  onHide={() => handleHideWord(w.id, w.word)}
                   onClick={() => toggleGroup(w.groupId)}
-                  style={rowButtonStyle(on)}
+                  rowStyle={{
+                    padding: "13px 14px",
+                    borderRadius: 12,
+                    border: `1px solid ${on ? C.gold : C.border}`,
+                    background: on ? C.elevated : C.card,
+                  }}
                 >
                   <div style={checkboxStyle(on)}>
                     {on && <Check size={15} color="#1A1408" strokeWidth={3} />}
@@ -996,7 +1156,7 @@ function GroupPicker({
                       {w.concept} · {w.conceptKo}
                     </div>
                   </div>
-                </button>
+                </SwipeableWordRow>
               );
             })
           ) : (
@@ -1018,7 +1178,59 @@ function GroupPicker({
             {minNote}
           </div>
         )}
+        </div>
       </div>
+      )}
+
+      {undo && (
+        <div
+          style={{
+            position: "fixed",
+            left: 0,
+            right: 0,
+            bottom: "calc(88px + env(safe-area-inset-bottom, 0px))",
+            zIndex: 25,
+            display: "flex",
+            justifyContent: "center",
+            pointerEvents: "none",
+          }}
+        >
+          <div
+            style={{
+              pointerEvents: "auto",
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              maxWidth: 440,
+              width: "calc(100% - 40px)",
+              padding: "11px 14px",
+              borderRadius: 10,
+              background: C.elevated,
+              border: `1px solid ${C.border}`,
+              boxShadow: "0 4px 20px rgba(0,0,0,0.35)",
+            }}
+          >
+            <span style={{ flex: 1, fontSize: 14, color: C.text }}>
+              「{undo.label}」 숨김
+            </span>
+            <button
+              type="button"
+              onClick={handleUndo}
+              style={{
+                background: "none",
+                border: "none",
+                color: C.gold,
+                fontWeight: 700,
+                fontSize: 14,
+                cursor: "pointer",
+                padding: 0,
+              }}
+            >
+              실행 취소
+            </button>
+          </div>
+        </div>
+      )}
 
       <div
         style={{
@@ -1217,7 +1429,15 @@ function StudyView({
   const playback = loadPlaybackSettings();
 
   return (
-    <div style={{ padding: "14px 20px" }}>
+    <div
+      style={{
+        padding: "14px 20px",
+        flex: 1,
+        minHeight: 0,
+        overflowY: "auto",
+        WebkitOverflowScrolling: "touch",
+      }}
+    >
       <div
         style={{
           display: "flex",
@@ -1530,7 +1750,16 @@ function QuizView({
   if (done) {
     const pct = Math.round((score / pool.length) * 100);
     return (
-      <div style={{ padding: "40px 20px", textAlign: "center" }}>
+      <div
+        style={{
+          padding: "40px 20px",
+          textAlign: "center",
+          flex: 1,
+          minHeight: 0,
+          overflowY: "auto",
+          WebkitOverflowScrolling: "touch",
+        }}
+      >
         <div style={{ fontSize: 14, color: C.muted }}>오늘 점수</div>
         <div
           style={{
@@ -1605,7 +1834,15 @@ function QuizView({
   };
 
   return (
-    <div style={{ padding: "14px 20px" }}>
+    <div
+      style={{
+        padding: "14px 20px",
+        flex: 1,
+        minHeight: 0,
+        overflowY: "auto",
+        WebkitOverflowScrolling: "touch",
+      }}
+    >
       <div
         style={{
           display: "flex",

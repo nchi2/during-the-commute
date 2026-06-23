@@ -124,6 +124,10 @@ export default function SettingsScreen({ onBack }: Props) {
   return (
     <div
       style={{
+        flex: 1,
+        minHeight: 0,
+        overflowY: "auto",
+        WebkitOverflowScrolling: "touch",
         padding: "0 0 40px",
         paddingBottom: "calc(40px + env(safe-area-inset-bottom, 0px))",
       }}

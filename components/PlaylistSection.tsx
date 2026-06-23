@@ -1,6 +1,15 @@
 "use client";
 
-import { useMemo, useState, useEffect, useCallback, type ReactNode } from "react";
+import {
+  useMemo,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  type ReactNode,
+} from "react";
+import SwipeableWordRow from "@/components/SwipeableWordRow";
+import HiddenWordsPanel from "@/components/HiddenWordsPanel";
 import {
   Check,
   ChevronLeft,
@@ -60,12 +69,22 @@ type Props = {
   onStartStudy: (items: StudyItem[]) => void;
   onStartQuiz: (items: StudyItem[]) => void;
   resetToken: number;
+  hiddenIds: Set<WordId>;
+  hiddenCount: number;
+  onHideWord: (id: WordId) => void;
+  onRestoreWord: (id: WordId) => void;
+  onRestoreAllHidden: () => void;
 };
 
 export default function PlaylistSection({
   onStartStudy,
   onStartQuiz,
   resetToken,
+  hiddenIds,
+  hiddenCount,
+  onHideWord,
+  onRestoreWord,
+  onRestoreAllHidden,
 }: Props) {
   const [screen, setScreen] = useState<Screen>({ type: "list" });
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
@@ -86,6 +105,15 @@ export default function PlaylistSection({
 
   if (screen.type === "pick") {
     return (
+      <div
+        style={{
+          flex: 1,
+          minHeight: 0,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+        }}
+      >
       <WordPicker
         selected={pickIds}
         onChange={setPickIds}
@@ -118,7 +146,13 @@ export default function PlaylistSection({
         playlists={playlists}
         mode={screen.mode}
         appendId={screen.appendId}
+        hiddenIds={hiddenIds}
+        hiddenCount={hiddenCount}
+        onHideWord={onHideWord}
+        onRestoreWord={onRestoreWord}
+        onRestoreAllHidden={onRestoreAllHidden}
       />
+      </div>
     );
   }
 
@@ -152,6 +186,14 @@ export default function PlaylistSection({
   }
 
   return (
+    <div
+      style={{
+        flex: 1,
+        minHeight: 0,
+        overflowY: "auto",
+        WebkitOverflowScrolling: "touch",
+      }}
+    >
     <PlaylistList
       playlists={playlists}
       onNew={() => {
@@ -170,14 +212,19 @@ export default function PlaylistSection({
         refresh();
       }}
       onStudy={(pl) => {
-        const items = resolveWordIds(pl.wordIds);
+        const items = resolveWordIds(
+          pl.wordIds.filter((id) => !hiddenIds.has(id)),
+        );
         if (items.length) onStartStudy(items);
       }}
       onQuiz={(pl) => {
-        const items = resolveWordIds(pl.wordIds);
+        const items = resolveWordIds(
+          pl.wordIds.filter((id) => !hiddenIds.has(id)),
+        );
         if (items.length) onStartQuiz(items);
       }}
     />
+    </div>
   );
 }
 
@@ -470,6 +517,11 @@ function WordPicker({
   playlists,
   mode,
   appendId,
+  hiddenIds,
+  hiddenCount,
+  onHideWord,
+  onRestoreWord,
+  onRestoreAllHidden,
 }: {
   selected: Set<WordId>;
   onChange: (s: Set<WordId>) => void;
@@ -479,18 +531,26 @@ function WordPicker({
   playlists: Playlist[];
   mode: "new" | "append";
   appendId?: string;
+  hiddenIds: Set<WordId>;
+  hiddenCount: number;
+  onHideWord: (id: WordId) => void;
+  onRestoreWord: (id: WordId) => void;
+  onRestoreAllHidden: () => void;
 }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortMode, setSortMode] = useState<"default" | "az">("default");
   const [showAppendList, setShowAppendList] = useState(false);
   const [nameOpen, setNameOpen] = useState(false);
   const [nameInput, setNameInput] = useState("");
+  const [showHidden, setShowHidden] = useState(false);
+  const [undo, setUndo] = useState<{ id: WordId; label: string } | null>(null);
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const allWords = useMemo(() => getWordCatalog(), []);
   const query = searchQuery.trim().toLowerCase();
 
   const displayedWords = useMemo(() => {
-    let list = allWords;
+    let list = allWords.filter((w) => !hiddenIds.has(w.id));
     if (query) {
       list = list.filter(
         (w) =>
@@ -504,7 +564,32 @@ function WordPicker({
       );
     }
     return list;
-  }, [allWords, query, sortMode]);
+  }, [allWords, query, sortMode, hiddenIds]);
+
+  const handleHideWord = (id: WordId, label: string) => {
+    onHideWord(id);
+    if (selected.has(id)) {
+      const next = new Set(selected);
+      next.delete(id);
+      onChange(next);
+    }
+    setUndo({ id, label });
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    undoTimer.current = setTimeout(() => setUndo(null), 4000);
+  };
+
+  const handleUndo = () => {
+    if (!undo) return;
+    onRestoreWord(undo.id);
+    setUndo(null);
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (undoTimer.current) clearTimeout(undoTimer.current);
+    };
+  }, []);
 
   const toggle = (id: WordId) => {
     const next = new Set(selected);
@@ -553,6 +638,14 @@ function WordPicker({
 
   return (
     <>
+      {showHidden ? (
+        <HiddenWordsPanel
+          hiddenIds={hiddenIds}
+          onBack={() => setShowHidden(false)}
+          onRestore={onRestoreWord}
+          onRestoreAll={onRestoreAllHidden}
+        />
+      ) : (
       <div
         style={{
           padding: "14px 20px",
@@ -631,6 +724,27 @@ function WordPicker({
           ))}
         </div>
 
+        <button
+          type="button"
+          onClick={() => setShowHidden(true)}
+          style={{
+            display: "block",
+            width: "100%",
+            marginBottom: 12,
+            padding: "9px 12px",
+            borderRadius: 8,
+            border: `1px solid ${C.border}`,
+            background: C.card,
+            color: hiddenCount > 0 ? C.gold : C.muted,
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: "pointer",
+            textAlign: "left",
+          }}
+        >
+          {hiddenCount > 0 ? `숨김 ${hiddenCount}개 보기` : "숨긴 단어 보기"}
+        </button>
+
         <div
           style={{
             display: "flex",
@@ -665,10 +779,16 @@ function WordPicker({
           {displayedWords.map((w) => {
             const on = selected.has(w.id);
             return (
-              <button
+              <SwipeableWordRow
                 key={w.id}
+                onHide={() => handleHideWord(w.id, w.word)}
                 onClick={() => toggle(w.id)}
-                style={rowStyle(on)}
+                rowStyle={{
+                  padding: "13px 14px",
+                  borderRadius: 12,
+                  border: `1px solid ${on ? C.gold : C.border}`,
+                  background: on ? C.elevated : C.card,
+                }}
               >
                 <div style={checkboxStyle(on)}>
                   {on && <Check size={15} color="#1A1408" strokeWidth={3} />}
@@ -704,11 +824,62 @@ function WordPicker({
                     {w.mean}
                   </div>
                 </div>
-              </button>
+              </SwipeableWordRow>
             );
           })}
         </div>
       </div>
+      )}
+
+      {undo && (
+        <div
+          style={{
+            position: "fixed",
+            left: 0,
+            right: 0,
+            bottom: "calc(100px + env(safe-area-inset-bottom, 0px))",
+            zIndex: 25,
+            display: "flex",
+            justifyContent: "center",
+            pointerEvents: "none",
+          }}
+        >
+          <div
+            style={{
+              pointerEvents: "auto",
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              maxWidth: 440,
+              width: "calc(100% - 40px)",
+              padding: "11px 14px",
+              borderRadius: 10,
+              background: C.elevated,
+              border: `1px solid ${C.border}`,
+              boxShadow: "0 4px 20px rgba(0,0,0,0.35)",
+            }}
+          >
+            <span style={{ flex: 1, fontSize: 14, color: C.text }}>
+              「{undo.label}」 숨김
+            </span>
+            <button
+              type="button"
+              onClick={handleUndo}
+              style={{
+                background: "none",
+                border: "none",
+                color: C.gold,
+                fontWeight: 700,
+                fontSize: 14,
+                cursor: "pointer",
+                padding: 0,
+              }}
+            >
+              실행 취소
+            </button>
+          </div>
+        </div>
+      )}
 
       <div
         style={{

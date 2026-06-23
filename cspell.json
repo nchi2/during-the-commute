@@ -1,0 +1,19 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "Swipeable",
+    "toeic",
+    "namjeonghyeon",
+    "eomuni",
+    "exko",
+    "SBMB",
+    "Seongsu",
+    "metaverse",
+    "Otaverse",
+    "Chunsim",
+    "VASP",
+    "Namsan"
+  ],
+  "ignorePaths": ["data/groups.mjs"]
+}
