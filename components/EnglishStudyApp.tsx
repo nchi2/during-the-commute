@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useRef, useMemo, useEffect, type CSSProperties } from "react";
+import {
+  useState,
+  useRef,
+  useMemo,
+  useEffect,
+  type CSSProperties,
+} from "react";
 import {
   Play,
   Pause,
@@ -17,19 +23,17 @@ import {
   Search,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import {
-  load,
-  saveGapSec,
-  saveQuizScore,
-} from "@/lib/storage";
+import { load, saveGapSec, saveQuizScore } from "@/lib/storage";
 import {
   cancelPlayback,
-  preloadEnglishAudio,
+  preloadWordAudio,
+  preloadWordSequence,
   speakEnglishExample,
   speakEnglishExampleNow,
   speakEnglishWord,
   speakEnglishWordNow,
-  speakKoreanOnce,
+  speakKoreanExKo,
+  speakKoreanMean,
 } from "@/lib/audio";
 import { GROUPS } from "@/data/groups.mjs";
 
@@ -127,25 +131,34 @@ export default function EnglishStudyApp() {
             zIndex: 10,
           }}
         >
-          <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-            <span
-              style={{
-                fontSize: 22,
-                fontWeight: 800,
-                letterSpacing: "-0.02em",
-              }}
-            >
-              오늘의 단어
-            </span>
-            <span
-              style={{
-                fontSize: 12,
-                color: C.muted,
-                fontFamily: "ui-monospace, monospace",
-              }}
-            >
-              daily reps
-            </span>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <img
+              src="/logos/logo_commute.png"
+              alt="오늘의 단어"
+              width={36}
+              height={36}
+              style={{ display: "block", borderRadius: 8, flexShrink: 0 }}
+            />
+            <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+              <span
+                style={{
+                  fontSize: 22,
+                  fontWeight: 800,
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                오늘의 단어
+              </span>
+              <span
+                style={{
+                  fontSize: 12,
+                  color: C.muted,
+                  fontFamily: "ui-monospace, monospace",
+                }}
+              >
+                daily reps
+              </span>
+            </div>
           </div>
           <div style={{ display: "flex", gap: 6, marginTop: 14 }}>
             {(
@@ -434,120 +447,116 @@ function GroupPicker({
           key={query || `sort-${sortMode}`}
           style={{ display: "flex", flexDirection: "column", gap: 8 }}
         >
-          {showGroups
-            ? GROUPS.map((g) => {
-                const on = selected.has(g.id);
-                return (
-                  <button
-                    key={g.id}
-                    onClick={() => toggleGroup(g.id)}
-                    style={rowButtonStyle(on)}
-                  >
-                    <div style={checkboxStyle(on)}>
-                      {on && (
-                        <Check size={15} color="#1A1408" strokeWidth={3} />
-                      )}
+          {showGroups ? (
+            GROUPS.map((g) => {
+              const on = selected.has(g.id);
+              return (
+                <button
+                  key={g.id}
+                  onClick={() => toggleGroup(g.id)}
+                  style={rowButtonStyle(on)}
+                >
+                  <div style={checkboxStyle(on)}>
+                    {on && <Check size={15} color="#1A1408" strokeWidth={3} />}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 16, fontWeight: 700 }}>
+                      {g.concept}{" "}
+                      <span
+                        style={{
+                          color: C.muted,
+                          fontWeight: 500,
+                          fontSize: 14,
+                        }}
+                      >
+                        · {g.ko}
+                      </span>
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 16, fontWeight: 700 }}>
-                        {g.concept}{" "}
-                        <span
-                          style={{
-                            color: C.muted,
-                            fontWeight: 500,
-                            fontSize: 14,
-                          }}
-                        >
-                          · {g.ko}
-                        </span>
-                      </div>
-                    </div>
-                    <span
-                      style={{
-                        fontFamily: "ui-monospace, monospace",
-                        fontSize: 13,
-                        color: C.muted,
-                      }}
-                    >
-                      {g.words.length}
-                    </span>
-                  </button>
-                );
-              })
-            : displayedWords.length > 0
-              ? displayedWords.map((w) => {
-                  const on = selected.has(w.groupId);
-                  return (
-                    <button
-                      key={w.order}
-                      onClick={() => toggleGroup(w.groupId)}
-                      style={rowButtonStyle(on)}
-                    >
-                      <div style={checkboxStyle(on)}>
-                        {on && (
-                          <Check size={15} color="#1A1408" strokeWidth={3} />
-                        )}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 8,
-                            flexWrap: "wrap",
-                          }}
-                        >
-                          <span style={{ fontSize: 16, fontWeight: 700 }}>
-                            {w.word}
-                          </span>
-                          <span
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 700,
-                              color: posColor(w.pos),
-                              border: `1px solid ${posColor(w.pos)}`,
-                              padding: "1px 6px",
-                              borderRadius: 5,
-                            }}
-                          >
-                            {w.pos}
-                          </span>
-                        </div>
-                        <div
-                          style={{
-                            fontSize: 14,
-                            color: C.muted,
-                            marginTop: 3,
-                          }}
-                        >
-                          {w.mean}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: 12,
-                            color: C.muted,
-                            marginTop: 2,
-                            opacity: 0.75,
-                          }}
-                        >
-                          {w.concept} · {w.conceptKo}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })
-              : (
-                  <div
+                  </div>
+                  <span
                     style={{
-                      textAlign: "center",
+                      fontFamily: "ui-monospace, monospace",
+                      fontSize: 13,
                       color: C.muted,
-                      padding: "32px 0",
-                      fontSize: 14,
                     }}
                   >
-                    검색 결과가 없어요
+                    {g.words.length}
+                  </span>
+                </button>
+              );
+            })
+          ) : displayedWords.length > 0 ? (
+            displayedWords.map((w) => {
+              const on = selected.has(w.groupId);
+              return (
+                <button
+                  key={w.order}
+                  onClick={() => toggleGroup(w.groupId)}
+                  style={rowButtonStyle(on)}
+                >
+                  <div style={checkboxStyle(on)}>
+                    {on && <Check size={15} color="#1A1408" strokeWidth={3} />}
                   </div>
-                )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <span style={{ fontSize: 16, fontWeight: 700 }}>
+                        {w.word}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: posColor(w.pos),
+                          border: `1px solid ${posColor(w.pos)}`,
+                          padding: "1px 6px",
+                          borderRadius: 5,
+                        }}
+                      >
+                        {w.pos}
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 14,
+                        color: C.muted,
+                        marginTop: 3,
+                      }}
+                    >
+                      {w.mean}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        color: C.muted,
+                        marginTop: 2,
+                        opacity: 0.75,
+                      }}
+                    >
+                      {w.concept} · {w.conceptKo}
+                    </div>
+                  </div>
+                </button>
+              );
+            })
+          ) : (
+            <div
+              style={{
+                textAlign: "center",
+                color: C.muted,
+                padding: "32px 0",
+                fontSize: 14,
+              }}
+            >
+              검색 결과가 없어요
+            </div>
+          )}
         </div>
 
         {minNote && (
@@ -561,12 +570,9 @@ function GroupPicker({
         style={{
           position: "fixed",
           bottom: 0,
-          left: "50%",
-          transform: "translateX(-50%)",
+          left: 0,
+          right: 0,
           width: "100%",
-          maxWidth: 480,
-          boxSizing: "border-box",
-          padding: "12px 20px calc(12px + env(safe-area-inset-bottom, 0px))",
           background: C.bg,
           borderTop: `1px solid ${C.border}`,
           zIndex: 20,
@@ -574,31 +580,40 @@ function GroupPicker({
       >
         <div
           style={{
-            textAlign: "center",
-            fontSize: 13,
-            color: C.muted,
-            marginBottom: 8,
+            maxWidth: 480,
+            margin: "0 auto",
+            boxSizing: "border-box",
+            padding: "12px 20px calc(12px + env(safe-area-inset-bottom, 0px))",
           }}
         >
-          선택한 단어 {count}개
+          <div
+            style={{
+              textAlign: "center",
+              fontSize: 13,
+              color: C.muted,
+              marginBottom: 8,
+            }}
+          >
+            선택한 단어 {count}개
+          </div>
+          <button
+            onClick={onStart}
+            disabled={!count}
+            style={{
+              width: "100%",
+              padding: "15px 0",
+              borderRadius: 12,
+              border: "none",
+              cursor: count ? "pointer" : "not-allowed",
+              background: count ? C.gold : C.elevated,
+              color: count ? "#1A1408" : C.muted,
+              fontWeight: 800,
+              fontSize: 16,
+            }}
+          >
+            {ctaLabel}
+          </button>
         </div>
-        <button
-          onClick={onStart}
-          disabled={!count}
-          style={{
-            width: "100%",
-            padding: "15px 0",
-            borderRadius: 12,
-            border: "none",
-            cursor: count ? "pointer" : "not-allowed",
-            background: count ? C.gold : C.elevated,
-            color: count ? "#1A1408" : C.muted,
-            fontWeight: 800,
-            fontSize: 16,
-          }}
-        >
-          {ctaLabel}
-        </button>
       </div>
     </>
   );
@@ -638,25 +653,29 @@ function StudyView({
     for (let i = start; i < items.length; i++) {
       const w = items[i];
       const next = items[i + 1];
-      if (next) preloadEnglishAudio(next.word);
+      if (next) preloadWordAudio(next.word);
       if (!playingRef.current) return;
       setIndex(i);
       setPhase("word");
-      preloadEnglishAudio(w.word);
+      preloadWordAudio(w.word);
+      preloadWordSequence(w.word, "word");
       await speakEnglishWord(w.word);
       if (!playingRef.current) return;
       await wait(gapRef.current * 1000); // 단어 따라하기 텀
       if (!playingRef.current) return;
-      await speakKoreanOnce(w.mean);
+      preloadWordSequence(w.word, "mean");
+      await speakKoreanMean(w.word, w.mean);
       if (!playingRef.current) return;
       await wait(600);
       if (!playingRef.current) return;
       setPhase("example");
+      preloadWordSequence(w.word, "ex");
       await speakEnglishExample(w.word, w.ex);
       if (!playingRef.current) return;
       await wait(gapRef.current * 1000); // 예문 따라하기 텀
       if (!playingRef.current) return;
-      await speakKoreanOnce(w.exKo);
+      preloadWordSequence(w.word, "exko");
+      await speakKoreanExKo(w.word, w.exKo);
       if (!playingRef.current) return;
       await wait(800);
     }

@@ -1,14 +1,14 @@
 /**
- * Google Cloud TTS로 단어·예문 mp3를 생성하는 일회성 스크립트.
+ * Google Cloud TTS로 단어·예문·한글 뜻 mp3를 생성하는 일회성 스크립트.
  *
  * 사전 준비:
  *   cp .env.example .env
  *   # .env 에 GOOGLE_TTS_KEY=YOUR_API_KEY 설정
  *
- * 테스트 (첫 단어 1개만 — 단어 + 예문 2개 mp3):
+ * 테스트 (첫 단어 1개 — 한국어 뜻 + 예문뜻 2개 mp3):
  *   TEST_ONLY=1 node --env-file=.env scripts/generate-audio.mjs
  *
- * 전체 생성:
+ * 전체 생성 (단어당 4개: en 단어/예문, ko 뜻/예문뜻):
  *   node --env-file=.env scripts/generate-audio.mjs
  */
 
@@ -24,17 +24,22 @@ const DELAY_MS = 200;
 
 const TTS_URL = "https://texttospeech.googleapis.com/v1/text:synthesize";
 
+const VOICES = {
+  en: { languageCode: "en-US", name: "en-US-Chirp3-HD-Charon" },
+  ko: { languageCode: "ko-KR", name: "ko-KR-Chirp3-HD-Charon" },
+};
+
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function synthesize(text, apiKey) {
+async function synthesize(text, voice, apiKey) {
   const res = await fetch(`${TTS_URL}?key=${apiKey}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       input: { text },
-      voice: { languageCode: "en-US", name: "en-US-Chirp3-HD-Charon" },
+      voice,
       audioConfig: { audioEncoding: "MP3" },
     }),
   });
@@ -48,21 +53,23 @@ async function synthesize(text, apiKey) {
   return Buffer.from(audioContent, "base64");
 }
 
-async function saveMp3(text, filename, wordLabel, apiKey) {
+async function saveMp3(text, filename, wordLabel, apiKey, voice, lang) {
   const filePath = join(AUDIO_DIR, filename);
 
   if (existsSync(filePath)) {
-    console.log(`- ${filename} 이미 존재 — 건너뜀`);
+    console.log(`- ${filename} [${lang}] 이미 존재 — 건너뜀`);
     return;
   }
 
   try {
-    const audio = await synthesize(text, apiKey);
+    const audio = await synthesize(text, voice, apiKey);
     writeFileSync(filePath, audio);
-    console.log(`✓ ${filename} 생성됨`);
+    console.log(`✓ ${filename} [${lang}] 생성됨`);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error(`✗ ${filename} 실패 (단어: ${wordLabel}): ${message}`);
+    console.error(
+      `✗ ${filename} [${lang}] 실패 (단어: ${wordLabel}): ${message}`,
+    );
     return;
   }
 
@@ -86,14 +93,20 @@ const words = testOnly ? allWords.slice(0, 1) : allWords;
 
 console.log(
   testOnly
-    ? `TEST_ONLY: 첫 단어 1개만 생성 (${words[0]?.word})`
-    : `전체 ${words.length}개 단어 생성 시작`,
+    ? `TEST_ONLY: 첫 단어 한국어 2개만 생성 (${words[0]?.word})`
+    : `전체 ${words.length}개 단어 × 4개 mp3 생성 시작`,
 );
 
-for (const { word, ex } of words) {
+for (const { word, ex, mean, exKo } of words) {
   const base = sanitizeAudioFilename(word);
-  await saveMp3(word, `${base}.mp3`, word, apiKey);
-  await saveMp3(ex, `${base}-ex.mp3`, word, apiKey);
+
+  if (!testOnly) {
+    await saveMp3(word, `${base}.mp3`, word, apiKey, VOICES.en, "en");
+    await saveMp3(ex, `${base}-ex.mp3`, word, apiKey, VOICES.en, "en");
+  }
+
+  await saveMp3(mean, `${base}-ko.mp3`, word, apiKey, VOICES.ko, "ko");
+  await saveMp3(exKo, `${base}-exko.mp3`, word, apiKey, VOICES.ko, "ko");
 }
 
 if (testOnly) {
