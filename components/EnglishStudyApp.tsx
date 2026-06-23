@@ -21,9 +21,12 @@ import {
   ChevronLeft,
   Repeat,
   Search,
+  ListMusic,
+  Dices,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { load, saveGapSec, saveQuizScore } from "@/lib/storage";
+import { load, saveGapSec, saveQuizScore, saveSelectedLevel } from "@/lib/storage";
+import type { LevelId } from "@/lib/storage";
 import {
   cancelPlayback,
   preloadWordAudio,
@@ -36,8 +39,10 @@ import {
   speakKoreanMean,
 } from "@/lib/audio";
 import { GROUPS } from "@/data/groups.mjs";
+import PlaylistSection from "@/components/PlaylistSection";
+import type { StudyItem as PlaylistStudyItem } from "@/lib/playlists";
 
-type Tab = "study" | "quiz";
+type Tab = "study" | "quiz" | "playlist";
 type StudyPhase = "word" | "example";
 
 type Word = {
@@ -75,6 +80,43 @@ function posColor(pos: string): string {
   return POS_COLOR[pos] ?? C.muted;
 }
 
+const LEVELS: {
+  id: LevelId;
+  label: string;
+  desc: string;
+  active: boolean;
+  theme?: "arena";
+  badge?: string;
+  inactiveToast?: string;
+}[] = [
+  {
+    id: "TEST",
+    label: "TEST",
+    desc: `전체 단어 (${GROUPS.reduce((n, g) => n + g.words.length, 0)}개)`,
+    active: true,
+  },
+  { id: "basic", label: "Basic", desc: "기초 단어", active: false },
+  { id: "intermediate", label: "중급", desc: "중급 단어", active: false },
+  { id: "advanced", label: "고급", desc: "고급 단어", active: false },
+  {
+    id: "arena",
+    label: "투기장",
+    desc: "단어 맞히고 판돈 걸기 — 올인 각오",
+    active: false,
+    theme: "arena",
+    badge: "오픈 예정",
+    inactiveToast: "아직 판이 안 열렸어요. 조금만 기다려 주세요.",
+  },
+];
+
+const LEVEL_LABEL: Record<LevelId, string> = {
+  TEST: "TEST",
+  basic: "Basic",
+  intermediate: "중급",
+  advanced: "고급",
+  arena: "투기장",
+};
+
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const shuffle = <T,>(a: T[]): T[] => {
   const x = [...a];
@@ -86,9 +128,52 @@ const shuffle = <T,>(a: T[]): T[] => {
 };
 
 export default function EnglishStudyApp() {
+  const [level, setLevel] = useState<LevelId | null>(null);
+  const [levelReady, setLevelReady] = useState(false);
+  const [levelToast, setLevelToast] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("study");
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [started, setStarted] = useState(false);
+  const [playlistSession, setPlaylistSession] = useState<{
+    mode: "study" | "quiz";
+    items: StudyItem[];
+  } | null>(null);
+  const [playlistReset, setPlaylistReset] = useState(0);
+
+  useEffect(() => {
+    setLevelReady(true);
+  }, []);
+
+  const handleSelectLevel = (id: LevelId, active: boolean) => {
+    if (!active) {
+      const meta = LEVELS.find((l) => l.id === id);
+      setLevelToast(meta?.inactiveToast ?? "준비 중입니다");
+      setTimeout(() => setLevelToast(null), 2500);
+      return;
+    }
+    cancelPlayback();
+    setLevel(id);
+    saveSelectedLevel(id);
+  };
+
+  const handleChangeLevel = () => {
+    cancelPlayback();
+    setTab("study");
+    setStarted(false);
+    setSelected(new Set());
+    setLevel(null);
+    saveSelectedLevel(null);
+    setPlaylistSession(null);
+    setPlaylistReset((n) => n + 1);
+  };
+
+  const handleGoHome = () => {
+    cancelPlayback();
+    setTab("study");
+    setStarted(false);
+    setPlaylistSession(null);
+    setPlaylistReset((n) => n + 1);
+  };
 
   const toggleGroup = (id: number) => {
     setSelected((prev) => {
@@ -110,6 +195,26 @@ export default function EnglishStudyApp() {
     [selected],
   );
 
+  if (!levelReady) {
+    return (
+      <div
+        style={{
+          background: C.bg,
+          minHeight: "100vh",
+        }}
+      />
+    );
+  }
+
+  if (level === null) {
+    return (
+      <LevelSelectScreen
+        toast={levelToast}
+        onSelect={handleSelectLevel}
+      />
+    );
+  }
+
   return (
     <div
       style={{
@@ -123,7 +228,8 @@ export default function EnglishStudyApp() {
         {/* 헤더 */}
         <header
           style={{
-            padding: "20px 20px 14px",
+            padding: "14px 20px",
+            paddingTop: "max(20px, calc(12px + env(safe-area-inset-top, 0px)))",
             borderBottom: `1px solid ${C.border}`,
             position: "sticky",
             top: 0,
@@ -131,7 +237,20 @@ export default function EnglishStudyApp() {
             zIndex: 10,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <button
+            onClick={handleGoHome}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              background: "none",
+              border: "none",
+              padding: 0,
+              cursor: "pointer",
+              color: C.text,
+              textAlign: "left",
+            }}
+          >
             <img
               src="/logos/logo_commute.png"
               alt="오늘의 단어"
@@ -159,12 +278,49 @@ export default function EnglishStudyApp() {
                 daily reps
               </span>
             </div>
+          </button>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginTop: 12,
+            }}
+          >
+            <span
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                color: C.gold,
+                border: `1px solid ${C.goldDim}`,
+                background: C.elevated,
+                padding: "4px 10px",
+                borderRadius: 8,
+              }}
+            >
+              {LEVEL_LABEL[level]}
+            </span>
+            <button
+              onClick={handleChangeLevel}
+              style={{
+                background: "none",
+                border: `1px solid ${C.border}`,
+                color: C.muted,
+                padding: "4px 10px",
+                borderRadius: 8,
+                fontSize: 12,
+                cursor: "pointer",
+              }}
+            >
+              레벨 변경
+            </button>
           </div>
           <div style={{ display: "flex", gap: 6, marginTop: 14 }}>
             {(
               [
                 { id: "study" as Tab, label: "단어", Icon: ListChecks },
                 { id: "quiz" as Tab, label: "퀴즈", Icon: Brain },
+                { id: "playlist" as Tab, label: "플레이", Icon: ListMusic },
               ] satisfies { id: Tab; label: string; Icon: LucideIcon }[]
             ).map(({ id, label, Icon }) => (
               <button
@@ -172,6 +328,7 @@ export default function EnglishStudyApp() {
                 onClick={() => {
                   setTab(id);
                   setStarted(false);
+                  setPlaylistSession(null);
                   cancelPlayback();
                 }}
                 style={{
@@ -196,7 +353,25 @@ export default function EnglishStudyApp() {
           </div>
         </header>
 
-        {tab === "study" && !started && (
+        {playlistSession?.mode === "study" && (
+          <StudyView
+            items={playlistSession.items}
+            onBack={() => {
+              setPlaylistSession(null);
+            }}
+          />
+        )}
+        {playlistSession?.mode === "quiz" && (
+          <QuizView
+            items={playlistSession.items}
+            onBack={() => {
+              cancelPlayback();
+              setPlaylistSession(null);
+            }}
+          />
+        )}
+
+        {!playlistSession && tab === "study" && !started && (
           <GroupPicker
             {...{
               selected,
@@ -205,20 +380,22 @@ export default function EnglishStudyApp() {
               toggleAll,
               count: items.length,
             }}
-            onStart={() => items.length && setStarted(true)}
+            onStart={() => {
+              cancelPlayback();
+              if (items.length) setStarted(true);
+            }}
             ctaLabel="학습 시작"
           />
         )}
-        {tab === "study" && started && (
+        {!playlistSession && tab === "study" && started && (
           <StudyView
             items={items}
             onBack={() => {
-              cancelPlayback();
               setStarted(false);
             }}
           />
         )}
-        {tab === "quiz" && !started && (
+        {!playlistSession && tab === "quiz" && !started && (
           <GroupPicker
             {...{
               selected,
@@ -227,15 +404,207 @@ export default function EnglishStudyApp() {
               toggleAll,
               count: items.length,
             }}
-            onStart={() => items.length >= 1 && setStarted(true)}
+            onStart={() => {
+              cancelPlayback();
+              if (items.length >= 1) setStarted(true);
+            }}
             ctaLabel="퀴즈 시작"
             minNote={
               items.length < 4 ? "4개 이상 단어를 선택하면 더 좋아" : null
             }
           />
         )}
-        {tab === "quiz" && started && (
-          <QuizView items={items} onBack={() => setStarted(false)} />
+        {!playlistSession && tab === "quiz" && started && (
+          <QuizView
+            items={items}
+            onBack={() => {
+              setStarted(false);
+            }}
+          />
+        )}
+        {!playlistSession && tab === "playlist" && (
+          <PlaylistSection
+            resetToken={playlistReset}
+            onStartStudy={(playlistItems: PlaylistStudyItem[]) => {
+              cancelPlayback();
+              setPlaylistSession({ mode: "study", items: playlistItems });
+            }}
+            onStartQuiz={(playlistItems: PlaylistStudyItem[]) => {
+              cancelPlayback();
+              setPlaylistSession({ mode: "quiz", items: playlistItems });
+            }}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function LevelSelectScreen({
+  toast,
+  onSelect,
+}: {
+  toast: string | null;
+  onSelect: (id: LevelId, active: boolean) => void;
+}) {
+  return (
+    <div
+      style={{
+        background: C.bg,
+        color: C.text,
+        minHeight: "100vh",
+        fontFamily: "system-ui, -apple-system, sans-serif",
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 480,
+          margin: "0 auto",
+          padding: "32px 20px 40px",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            marginBottom: 28,
+          }}
+        >
+          <img
+            src="/logos/logo_commute.png"
+            alt="오늘의 단어"
+            width={56}
+            height={56}
+            style={{ display: "block", borderRadius: 12, marginBottom: 14 }}
+          />
+          <h1
+            style={{
+              margin: 0,
+              fontSize: 24,
+              fontWeight: 800,
+              letterSpacing: "-0.02em",
+            }}
+          >
+            레벨 선택
+          </h1>
+          <p
+            style={{
+              margin: "8px 0 0",
+              fontSize: 14,
+              color: C.muted,
+              textAlign: "center",
+            }}
+          >
+            학습할 레벨을 골라 시작하세요
+          </p>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {LEVELS.map(({ id, label, desc, active, theme, badge }) => {
+            const isArena = theme === "arena";
+            return (
+            <button
+              key={id}
+              onClick={() => onSelect(id, active)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+                textAlign: "left",
+                padding: "16px 16px",
+                borderRadius: 12,
+                cursor: active ? "pointer" : "not-allowed",
+                background: isArena
+                  ? "linear-gradient(135deg, #1f1418 0%, #2a1a12 45%, #1B1E2A 100%)"
+                  : active
+                    ? C.elevated
+                    : C.card,
+                border: `1px solid ${
+                  isArena ? "#9e3d3d" : active ? C.gold : C.border
+                }`,
+                color: active ? C.text : isArena ? C.text : C.muted,
+                opacity: active ? 1 : isArena ? 0.82 : 0.55,
+                width: "100%",
+                boxShadow: isArena ? "0 0 20px rgba(224, 122, 95, 0.12)" : "none",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                {isArena && (
+                  <div
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 10,
+                      flexShrink: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      background: "rgba(224, 122, 95, 0.15)",
+                      border: "1px solid rgba(224, 122, 95, 0.35)",
+                    }}
+                  >
+                    <Dices size={22} color={C.red} />
+                  </div>
+                )}
+                <div>
+                  <div
+                    style={{
+                      fontSize: 17,
+                      fontWeight: 700,
+                      color: isArena ? C.gold : undefined,
+                    }}
+                  >
+                    {label}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: isArena ? "#c9a88a" : C.muted,
+                      marginTop: 4,
+                    }}
+                  >
+                    {desc}
+                  </div>
+                </div>
+              </div>
+              {!active && (
+                <span
+                  style={{
+                    flexShrink: 0,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: isArena ? C.gold : C.muted,
+                    border: `1px solid ${isArena ? C.goldDim : C.border}`,
+                    background: isArena ? "rgba(232, 179, 61, 0.1)" : "transparent",
+                    padding: "3px 8px",
+                    borderRadius: 6,
+                  }}
+                >
+                  {badge ?? "준비 중"}
+                </span>
+              )}
+            </button>
+            );
+          })}
+        </div>
+
+        {toast && (
+          <div
+            style={{
+              marginTop: 16,
+              textAlign: "center",
+              fontSize: 14,
+              color: C.gold,
+              padding: "10px 14px",
+              borderRadius: 10,
+              background: C.elevated,
+              border: `1px solid ${C.goldDim}`,
+            }}
+          >
+            {toast}
+          </div>
         )}
       </div>
     </div>
@@ -647,6 +1016,24 @@ function StudyView({
     saveGapSec(gapSec);
   }, [gapSec, gapReady]);
 
+  useEffect(() => {
+    return () => {
+      playingRef.current = false;
+      cancelPlayback();
+    };
+  }, []);
+
+  const stopSession = () => {
+    playingRef.current = false;
+    cancelPlayback();
+    setIsPlaying(false);
+  };
+
+  const handleBack = () => {
+    stopSession();
+    onBack();
+  };
+
   const runFrom = async (start: number) => {
     playingRef.current = true;
     setIsPlaying(true);
@@ -684,9 +1071,7 @@ function StudyView({
     setPhase("word");
   };
   const pause = () => {
-    playingRef.current = false;
-    cancelPlayback();
-    setIsPlaying(false);
+    stopSession();
   };
   const play = () => runFrom(index);
   const go = (i: number) => {
@@ -710,7 +1095,7 @@ function StudyView({
         }}
       >
         <button
-          onClick={onBack}
+          onClick={handleBack}
           style={{
             display: "flex",
             alignItems: "center",
@@ -1006,6 +1391,17 @@ function QuizView({
     if (done) saveQuizScore(score, pool.length);
   }, [done, score, pool.length]);
 
+  useEffect(() => {
+    return () => {
+      cancelPlayback();
+    };
+  }, []);
+
+  const handleBack = () => {
+    cancelPlayback();
+    onBack();
+  };
+
   const q = pool[qi];
   const options = useMemo(() => {
     if (!q) return [];
@@ -1061,7 +1457,7 @@ function QuizView({
         </button>
         <div>
           <button
-            onClick={onBack}
+            onClick={handleBack}
             style={{
               marginTop: 14,
               background: "none",
@@ -1103,7 +1499,7 @@ function QuizView({
         }}
       >
         <button
-          onClick={onBack}
+          onClick={handleBack}
           style={{
             display: "flex",
             alignItems: "center",

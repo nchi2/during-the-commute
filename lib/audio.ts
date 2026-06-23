@@ -20,6 +20,8 @@ export function exKoAudioUrl(word: string): string {
 
 let sharedAudio: HTMLAudioElement | null = null;
 let activeResolve: (() => void) | null = null;
+let onCanPlayHandler: (() => void) | null = null;
+let stopRequested = false;
 const preloaded = new Set<string>();
 
 function getSharedAudio(): HTMLAudioElement {
@@ -30,9 +32,8 @@ function getSharedAudio(): HTMLAudioElement {
   return sharedAudio;
 }
 
-let onCanPlayHandler: (() => void) | null = null;
-
 export function cancelPlayback(): void {
+  stopRequested = true;
   try {
     window.speechSynthesis?.cancel();
   } catch {
@@ -41,6 +42,7 @@ export function cancelPlayback(): void {
   const audio = sharedAudio;
   if (audio) {
     audio.pause();
+    audio.currentTime = 0;
     audio.onended = null;
     audio.onerror = null;
     if (onCanPlayHandler) {
@@ -57,6 +59,7 @@ export function cancelPlayback(): void {
 
 function playMp3(url: string): Promise<boolean> {
   return new Promise((resolve) => {
+    stopRequested = false;
     const audio = getSharedAudio();
 
     const done = (ok: boolean) => {
@@ -74,6 +77,10 @@ function playMp3(url: string): Promise<boolean> {
     activeResolve = onCancel;
 
     const startPlay = () => {
+      if (stopRequested) {
+        done(false);
+        return;
+      }
       audio.play().catch(() => done(false));
     };
 
@@ -125,6 +132,7 @@ async function playMp3OrTTS(
   lang: string,
 ): Promise<void> {
   const ok = await playMp3(url);
+  if (stopRequested) return;
   if (!ok) await speakOnceTTS(fallbackText, lang);
 }
 

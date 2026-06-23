@@ -1,5 +1,7 @@
 const STORAGE_KEY = "english-study";
 
+export type LevelId = "TEST" | "basic" | "intermediate" | "advanced" | "arena";
+
 export type QuizScoreEntry = {
   score: number;
   total: number;
@@ -8,6 +10,7 @@ export type QuizScoreEntry = {
 export type StoredSettings = {
   gapSec: number;
   quizScores: Record<string, QuizScoreEntry>;
+  selectedLevel?: LevelId;
 };
 
 const DEFAULTS: StoredSettings = {
@@ -40,7 +43,23 @@ export function load(): StoredSettings {
       raw.quizScores && typeof raw.quizScores === "object"
         ? raw.quizScores
         : DEFAULTS.quizScores,
+    selectedLevel:
+      raw.selectedLevel === "TEST" ? "TEST" : undefined,
   };
+}
+
+export function loadSelectedLevel(): LevelId | null {
+  return load().selectedLevel ?? null;
+}
+
+export function saveSelectedLevel(level: LevelId | null) {
+  if (level === null) {
+    const { selectedLevel: _, ...rest } = load();
+    if (typeof window === "undefined") return;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(rest));
+    return;
+  }
+  write({ selectedLevel: level });
 }
 
 export function saveGapSec(gapSec: number) {
