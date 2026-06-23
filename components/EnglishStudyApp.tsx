@@ -22,10 +22,15 @@ import {
   Repeat,
   Search,
   ListMusic,
-  Dices,
+  Settings,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { load, saveGapSec, saveQuizScore, saveSelectedLevel } from "@/lib/storage";
+import {
+  loadPlaybackSettings,
+  loadSelectedLevel,
+  saveQuizScore,
+  saveSelectedLevel,
+} from "@/lib/storage";
 import type { LevelId } from "@/lib/storage";
 import {
   cancelPlayback,
@@ -40,6 +45,7 @@ import {
 } from "@/lib/audio";
 import { GROUPS } from "@/data/groups.mjs";
 import PlaylistSection from "@/components/PlaylistSection";
+import SettingsScreen from "@/components/SettingsScreen";
 import type { StudyItem as PlaylistStudyItem } from "@/lib/playlists";
 
 type Tab = "study" | "quiz" | "playlist";
@@ -80,42 +86,81 @@ function posColor(pos: string): string {
   return POS_COLOR[pos] ?? C.muted;
 }
 
-const LEVELS: {
+const WORD_COUNT = GROUPS.reduce((n, g) => n + g.words.length, 0);
+
+type LevelEntry = {
   id: LevelId;
   label: string;
   desc: string;
   active: boolean;
-  theme?: "arena";
-  badge?: string;
   inactiveToast?: string;
-}[] = [
+};
+
+type LevelCategory = {
+  id: string;
+  label: string;
+  levels: LevelEntry[];
+};
+
+const LEVEL_CATEGORIES: LevelCategory[] = [
   {
-    id: "TEST",
-    label: "TEST",
-    desc: `전체 단어 (${GROUPS.reduce((n, g) => n + g.words.length, 0)}개)`,
-    active: true,
+    id: "foundation",
+    label: "기본",
+    levels: [
+      { id: "basic", label: "기초", desc: "기초 단어", active: false },
+      { id: "intermediate", label: "중급", desc: "중급 단어", active: false },
+      { id: "advanced", label: "고급", desc: "고급 단어", active: false },
+    ],
   },
-  { id: "basic", label: "Basic", desc: "기초 단어", active: false },
-  { id: "intermediate", label: "중급", desc: "중급 단어", active: false },
-  { id: "advanced", label: "고급", desc: "고급 단어", active: false },
   {
-    id: "arena",
-    label: "투기장",
-    desc: "단어 맞히고 판돈 걸기 — 올인 각오",
-    active: false,
-    theme: "arena",
-    badge: "오픈 예정",
-    inactiveToast: "아직 판이 안 열렸어요. 조금만 기다려 주세요.",
+    id: "toeic",
+    label: "토익",
+    levels: [
+      {
+        id: "toeic-750",
+        label: "토익 750",
+        desc: "목표 점수별 단어",
+        active: false,
+      },
+    ],
+  },
+  {
+    id: "custom",
+    label: "커스텀",
+    levels: [
+      {
+        id: "namjeonghyeon",
+        label: "남정현",
+        desc: `단어장 ${WORD_COUNT}개`,
+        active: true,
+      },
+      {
+        id: "eomuni",
+        label: "어무니",
+        desc: "문장 듣고 영작",
+        active: false,
+        inactiveToast: "문장 듣고 영작 모드는 준비 중입니다",
+      },
+    ],
   },
 ];
 
 const LEVEL_LABEL: Record<LevelId, string> = {
-  TEST: "TEST",
-  basic: "Basic",
+  basic: "기초",
   intermediate: "중급",
   advanced: "고급",
-  arena: "투기장",
+  "toeic-750": "토익 750",
+  namjeonghyeon: "남정현",
+  eomuni: "어무니",
 };
+
+function findLevelEntry(id: LevelId): LevelEntry | undefined {
+  for (const cat of LEVEL_CATEGORIES) {
+    const found = cat.levels.find((l) => l.id === id);
+    if (found) return found;
+  }
+  return undefined;
+}
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const shuffle = <T,>(a: T[]): T[] => {
@@ -139,14 +184,42 @@ export default function EnglishStudyApp() {
     items: StudyItem[];
   } | null>(null);
   const [playlistReset, setPlaylistReset] = useState(0);
+  const [showSettings, setShowSettings] = useState(false);
+  const settingsReturnRef = useRef<{
+    tab: Tab;
+    started: boolean;
+    playlistSession: {
+      mode: "study" | "quiz";
+      items: StudyItem[];
+    } | null;
+  } | null>(null);
+
+  const openSettings = () => {
+    cancelPlayback();
+    settingsReturnRef.current = { tab, started, playlistSession };
+    setShowSettings(true);
+  };
+
+  const closeSettings = () => {
+    const snap = settingsReturnRef.current;
+    if (snap) {
+      setTab(snap.tab);
+      setStarted(snap.started);
+      setPlaylistSession(snap.playlistSession);
+      settingsReturnRef.current = null;
+    }
+    setShowSettings(false);
+  };
 
   useEffect(() => {
+    const saved = loadSelectedLevel();
+    if (saved) setLevel(saved);
     setLevelReady(true);
   }, []);
 
   const handleSelectLevel = (id: LevelId, active: boolean) => {
     if (!active) {
-      const meta = LEVELS.find((l) => l.id === id);
+      const meta = findLevelEntry(id);
       setLevelToast(meta?.inactiveToast ?? "준비 중입니다");
       setTimeout(() => setLevelToast(null), 2500);
       return;
@@ -158,6 +231,8 @@ export default function EnglishStudyApp() {
 
   const handleChangeLevel = () => {
     cancelPlayback();
+    settingsReturnRef.current = null;
+    setShowSettings(false);
     setTab("study");
     setStarted(false);
     setSelected(new Set());
@@ -169,8 +244,13 @@ export default function EnglishStudyApp() {
 
   const handleGoHome = () => {
     cancelPlayback();
+    settingsReturnRef.current = null;
+    setShowSettings(false);
     setTab("study");
     setStarted(false);
+    setSelected(new Set());
+    setLevel(null);
+    saveSelectedLevel(null);
     setPlaylistSession(null);
     setPlaylistReset((n) => n + 1);
   };
@@ -208,10 +288,7 @@ export default function EnglishStudyApp() {
 
   if (level === null) {
     return (
-      <LevelSelectScreen
-        toast={levelToast}
-        onSelect={handleSelectLevel}
-      />
+      <LevelSelectScreen toast={levelToast} onSelect={handleSelectLevel} />
     );
   }
 
@@ -229,10 +306,9 @@ export default function EnglishStudyApp() {
         <header
           style={{
             padding: "14px 20px",
-            paddingTop: "max(20px, calc(12px + env(safe-area-inset-top, 0px)))",
             borderBottom: `1px solid ${C.border}`,
             position: "sticky",
-            top: 0,
+            top: "env(safe-area-inset-top, 0px)",
             background: C.bg,
             zIndex: 10,
           }}
@@ -300,140 +376,167 @@ export default function EnglishStudyApp() {
             >
               {LEVEL_LABEL[level]}
             </span>
-            <button
-              onClick={handleChangeLevel}
-              style={{
-                background: "none",
-                border: `1px solid ${C.border}`,
-                color: C.muted,
-                padding: "4px 10px",
-                borderRadius: 8,
-                fontSize: 12,
-                cursor: "pointer",
-              }}
-            >
-              레벨 변경
-            </button>
-          </div>
-          <div style={{ display: "flex", gap: 6, marginTop: 14 }}>
-            {(
-              [
-                { id: "study" as Tab, label: "단어", Icon: ListChecks },
-                { id: "quiz" as Tab, label: "퀴즈", Icon: Brain },
-                { id: "playlist" as Tab, label: "플레이", Icon: ListMusic },
-              ] satisfies { id: Tab; label: string; Icon: LucideIcon }[]
-            ).map(({ id, label, Icon }) => (
+            <div style={{ display: "flex", gap: 6 }}>
               <button
-                key={id}
-                onClick={() => {
-                  setTab(id);
-                  setStarted(false);
-                  setPlaylistSession(null);
-                  cancelPlayback();
-                }}
+                onClick={openSettings}
                 style={{
-                  flex: 1,
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "center",
-                  gap: 6,
-                  padding: "9px 0",
-                  borderRadius: 10,
-                  border: "none",
+                  gap: 4,
+                  background: "none",
+                  border: `1px solid ${C.border}`,
+                  color: showSettings ? C.gold : C.muted,
+                  padding: "4px 10px",
+                  borderRadius: 8,
+                  fontSize: 12,
                   cursor: "pointer",
-                  background: tab === id ? C.gold : C.elevated,
-                  color: tab === id ? "#1A1408" : C.muted,
-                  fontWeight: 700,
-                  fontSize: 14,
                 }}
               >
-                <Icon size={16} /> {label}
+                <Settings size={14} /> 설정
               </button>
-            ))}
+              <button
+                onClick={handleChangeLevel}
+                style={{
+                  background: "none",
+                  border: `1px solid ${C.border}`,
+                  color: C.muted,
+                  padding: "4px 10px",
+                  borderRadius: 8,
+                  fontSize: 12,
+                  cursor: "pointer",
+                }}
+              >
+                단어장 변경
+              </button>
+            </div>
           </div>
+          {!showSettings && (
+            <div style={{ display: "flex", gap: 6, marginTop: 14 }}>
+              {(
+                [
+                  { id: "study" as Tab, label: "단어", Icon: ListChecks },
+                  { id: "quiz" as Tab, label: "퀴즈", Icon: Brain },
+                  { id: "playlist" as Tab, label: "플레이", Icon: ListMusic },
+                ] satisfies { id: Tab; label: string; Icon: LucideIcon }[]
+              ).map(({ id, label, Icon }) => (
+                <button
+                  key={id}
+                  onClick={() => {
+                    setTab(id);
+                    setStarted(false);
+                    setPlaylistSession(null);
+                    cancelPlayback();
+                  }}
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                    padding: "9px 0",
+                    borderRadius: 10,
+                    border: "none",
+                    cursor: "pointer",
+                    background: tab === id ? C.gold : C.elevated,
+                    color: tab === id ? "#1A1408" : C.muted,
+                    fontWeight: 700,
+                    fontSize: 14,
+                  }}
+                >
+                  <Icon size={16} /> {label}
+                </button>
+              ))}
+            </div>
+          )}
         </header>
 
-        {playlistSession?.mode === "study" && (
-          <StudyView
-            items={playlistSession.items}
-            onBack={() => {
-              setPlaylistSession(null);
-            }}
-          />
-        )}
-        {playlistSession?.mode === "quiz" && (
-          <QuizView
-            items={playlistSession.items}
-            onBack={() => {
-              cancelPlayback();
-              setPlaylistSession(null);
-            }}
-          />
-        )}
+        {showSettings ? (
+          <SettingsScreen onBack={closeSettings} />
+        ) : (
+          <>
+            {playlistSession?.mode === "study" && (
+              <StudyView
+                items={playlistSession.items}
+                onBack={() => {
+                  setPlaylistSession(null);
+                }}
+              />
+            )}
+            {playlistSession?.mode === "quiz" && (
+              <QuizView
+                items={playlistSession.items}
+                onBack={() => {
+                  cancelPlayback();
+                  setPlaylistSession(null);
+                }}
+              />
+            )}
 
-        {!playlistSession && tab === "study" && !started && (
-          <GroupPicker
-            {...{
-              selected,
-              toggleGroup,
-              allSelected,
-              toggleAll,
-              count: items.length,
-            }}
-            onStart={() => {
-              cancelPlayback();
-              if (items.length) setStarted(true);
-            }}
-            ctaLabel="학습 시작"
-          />
-        )}
-        {!playlistSession && tab === "study" && started && (
-          <StudyView
-            items={items}
-            onBack={() => {
-              setStarted(false);
-            }}
-          />
-        )}
-        {!playlistSession && tab === "quiz" && !started && (
-          <GroupPicker
-            {...{
-              selected,
-              toggleGroup,
-              allSelected,
-              toggleAll,
-              count: items.length,
-            }}
-            onStart={() => {
-              cancelPlayback();
-              if (items.length >= 1) setStarted(true);
-            }}
-            ctaLabel="퀴즈 시작"
-            minNote={
-              items.length < 4 ? "4개 이상 단어를 선택하면 더 좋아" : null
-            }
-          />
-        )}
-        {!playlistSession && tab === "quiz" && started && (
-          <QuizView
-            items={items}
-            onBack={() => {
-              setStarted(false);
-            }}
-          />
-        )}
-        {!playlistSession && tab === "playlist" && (
-          <PlaylistSection
-            resetToken={playlistReset}
-            onStartStudy={(playlistItems: PlaylistStudyItem[]) => {
-              cancelPlayback();
-              setPlaylistSession({ mode: "study", items: playlistItems });
-            }}
-            onStartQuiz={(playlistItems: PlaylistStudyItem[]) => {
-              cancelPlayback();
-              setPlaylistSession({ mode: "quiz", items: playlistItems });
-            }}
-          />
+            {!playlistSession && tab === "study" && !started && (
+              <GroupPicker
+                {...{
+                  selected,
+                  toggleGroup,
+                  allSelected,
+                  toggleAll,
+                  count: items.length,
+                }}
+                onStart={() => {
+                  cancelPlayback();
+                  if (items.length) setStarted(true);
+                }}
+                ctaLabel="학습 시작"
+              />
+            )}
+            {!playlistSession && tab === "study" && started && (
+              <StudyView
+                items={items}
+                onBack={() => {
+                  setStarted(false);
+                }}
+              />
+            )}
+            {!playlistSession && tab === "quiz" && !started && (
+              <GroupPicker
+                {...{
+                  selected,
+                  toggleGroup,
+                  allSelected,
+                  toggleAll,
+                  count: items.length,
+                }}
+                onStart={() => {
+                  cancelPlayback();
+                  if (items.length >= 1) setStarted(true);
+                }}
+                ctaLabel="퀴즈 시작"
+                minNote={
+                  items.length < 4 ? "4개 이상 단어를 선택하면 더 좋아" : null
+                }
+              />
+            )}
+            {!playlistSession && tab === "quiz" && started && (
+              <QuizView
+                items={items}
+                onBack={() => {
+                  setStarted(false);
+                }}
+              />
+            )}
+            {!playlistSession && tab === "playlist" && (
+              <PlaylistSection
+                resetToken={playlistReset}
+                onStartStudy={(playlistItems: PlaylistStudyItem[]) => {
+                  cancelPlayback();
+                  setPlaylistSession({ mode: "study", items: playlistItems });
+                }}
+                onStartQuiz={(playlistItems: PlaylistStudyItem[]) => {
+                  cancelPlayback();
+                  setPlaylistSession({ mode: "quiz", items: playlistItems });
+                }}
+              />
+            )}
+          </>
         )}
       </div>
     </div>
@@ -486,7 +589,7 @@ function LevelSelectScreen({
               letterSpacing: "-0.02em",
             }}
           >
-            레벨 선택
+            단어장 선택
           </h1>
           <p
             style={{
@@ -496,98 +599,80 @@ function LevelSelectScreen({
               textAlign: "center",
             }}
           >
-            학습할 레벨을 골라 시작하세요
+            학습할 단어장을 골라 시작하세요
           </p>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {LEVELS.map(({ id, label, desc, active, theme, badge }) => {
-            const isArena = theme === "arena";
-            return (
-            <button
-              key={id}
-              onClick={() => onSelect(id, active)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 12,
-                textAlign: "left",
-                padding: "16px 16px",
-                borderRadius: 12,
-                cursor: active ? "pointer" : "not-allowed",
-                background: isArena
-                  ? "linear-gradient(135deg, #1f1418 0%, #2a1a12 45%, #1B1E2A 100%)"
-                  : active
-                    ? C.elevated
-                    : C.card,
-                border: `1px solid ${
-                  isArena ? "#9e3d3d" : active ? C.gold : C.border
-                }`,
-                color: active ? C.text : isArena ? C.text : C.muted,
-                opacity: active ? 1 : isArena ? 0.82 : 0.55,
-                width: "100%",
-                boxShadow: isArena ? "0 0 20px rgba(224, 122, 95, 0.12)" : "none",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                {isArena && (
-                  <div
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          {LEVEL_CATEGORIES.map((category) => (
+            <section key={category.id}>
+              <h2
+                style={{
+                  margin: "0 0 10px",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  letterSpacing: "0.06em",
+                  textTransform: "uppercase",
+                  color: C.muted,
+                }}
+              >
+                {category.label}
+              </h2>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {category.levels.map(({ id, label, desc, active }) => (
+                  <button
+                    key={id}
+                    onClick={() => onSelect(id, active)}
                     style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 10,
-                      flexShrink: 0,
                       display: "flex",
                       alignItems: "center",
-                      justifyContent: "center",
-                      background: "rgba(224, 122, 95, 0.15)",
-                      border: "1px solid rgba(224, 122, 95, 0.35)",
+                      justifyContent: "space-between",
+                      gap: 12,
+                      textAlign: "left",
+                      padding: "15px 16px",
+                      borderRadius: 12,
+                      cursor: active ? "pointer" : "not-allowed",
+                      background: active ? C.elevated : C.card,
+                      border: `1px solid ${active ? C.gold : C.border}`,
+                      color: active ? C.text : C.muted,
+                      opacity: active ? 1 : 0.55,
+                      width: "100%",
                     }}
                   >
-                    <Dices size={22} color={C.red} />
-                  </div>
-                )}
-                <div>
-                  <div
-                    style={{
-                      fontSize: 17,
-                      fontWeight: 700,
-                      color: isArena ? C.gold : undefined,
-                    }}
-                  >
-                    {label}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 13,
-                      color: isArena ? "#c9a88a" : C.muted,
-                      marginTop: 4,
-                    }}
-                  >
-                    {desc}
-                  </div>
-                </div>
+                    <div>
+                      <div style={{ fontSize: 17, fontWeight: 700 }}>
+                        {label}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 13,
+                          color: C.muted,
+                          marginTop: 4,
+                        }}
+                      >
+                        {desc}
+                      </div>
+                    </div>
+                    {!active && (
+                      <span
+                        style={{
+                          flexShrink: 0,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: C.muted,
+                          border: `1px solid ${C.border}`,
+                          padding: "3px 8px",
+                          borderRadius: 6,
+                        }}
+                      >
+                        준비 중
+                      </span>
+                    )}
+                  </button>
+                ))}
               </div>
-              {!active && (
-                <span
-                  style={{
-                    flexShrink: 0,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: isArena ? C.gold : C.muted,
-                    border: `1px solid ${isArena ? C.goldDim : C.border}`,
-                    background: isArena ? "rgba(232, 179, 61, 0.1)" : "transparent",
-                    padding: "3px 8px",
-                    borderRadius: 6,
-                  }}
-                >
-                  {badge ?? "준비 중"}
-                </span>
-              )}
-            </button>
-            );
-          })}
+            </section>
+          ))}
         </div>
 
         {toast && (
@@ -997,24 +1082,12 @@ function StudyView({
 }) {
   const [index, setIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [cycleComplete, setCycleComplete] = useState(false);
+  const [finishedLastItem, setFinishedLastItem] = useState(false);
   const [phase, setPhase] = useState<StudyPhase>("word");
   const [showKo, setShowKo] = useState(true);
-  const [gapSec, setGapSec] = useState(2.5);
-  const [gapReady, setGapReady] = useState(false);
-  const gapRef = useRef(2.5);
-  gapRef.current = gapSec;
   const playingRef = useRef(false);
   const cur = items[index];
-
-  useEffect(() => {
-    setGapSec(load().gapSec);
-    setGapReady(true);
-  }, []);
-
-  useEffect(() => {
-    if (!gapReady) return;
-    saveGapSec(gapSec);
-  }, [gapSec, gapReady]);
 
   useEffect(() => {
     return () => {
@@ -1034,48 +1107,106 @@ function StudyView({
     onBack();
   };
 
-  const runFrom = async (start: number) => {
-    playingRef.current = true;
-    setIsPlaying(true);
-    for (let i = start; i < items.length; i++) {
-      const w = items[i];
-      const next = items[i + 1];
-      if (next) preloadWordAudio(next.word);
-      if (!playingRef.current) return;
-      setIndex(i);
-      setPhase("word");
-      preloadWordAudio(w.word);
+  const playItem = async (w: StudyItem, i: number): Promise<boolean> => {
+    const settings = loadPlaybackSettings();
+    const next = items[i + 1];
+    if (next) preloadWordAudio(next.word);
+
+    if (!playingRef.current) return false;
+    setIndex(i);
+    setPhase("word");
+    preloadWordAudio(w.word);
+
+    for (let r = 0; r < settings.wordRepeatCount; r++) {
+      if (!playingRef.current) return false;
       preloadWordSequence(w.word, "word");
       await speakEnglishWord(w.word);
-      if (!playingRef.current) return;
-      await wait(gapRef.current * 1000); // 단어 따라하기 텀
-      if (!playingRef.current) return;
+      if (!playingRef.current) return false;
+      await wait(settings.gapSec * 1000);
       preloadWordSequence(w.word, "mean");
       await speakKoreanMean(w.word, w.mean);
-      if (!playingRef.current) return;
-      await wait(600);
-      if (!playingRef.current) return;
-      setPhase("example");
+      if (r < settings.wordRepeatCount - 1) {
+        if (!playingRef.current) return false;
+        await wait(settings.setGapSec * 1000);
+      }
+    }
+
+    if (!playingRef.current) return false;
+    setPhase("example");
+
+    for (let r = 0; r < settings.exampleRepeatCount; r++) {
+      if (!playingRef.current) return false;
       preloadWordSequence(w.word, "ex");
       await speakEnglishExample(w.word, w.ex);
-      if (!playingRef.current) return;
-      await wait(gapRef.current * 1000); // 예문 따라하기 텀
-      if (!playingRef.current) return;
+      if (!playingRef.current) return false;
+      await wait(settings.gapSec * 1000);
       preloadWordSequence(w.word, "exko");
       await speakKoreanExKo(w.word, w.exKo);
-      if (!playingRef.current) return;
-      await wait(800);
+      if (r < settings.exampleRepeatCount - 1) {
+        if (!playingRef.current) return false;
+        await wait(settings.setGapSec * 1000);
+      }
     }
+
+    if (!playingRef.current) return false;
+    if (i < items.length - 1 && settings.itemGapEnabled) {
+      await wait(settings.itemGapSec * 1000);
+    }
+    if (i === items.length - 1) {
+      setFinishedLastItem(true);
+    }
+    return true;
+  };
+
+  const finishRun = () => {
     playingRef.current = false;
     setIsPlaying(false);
     setPhase("word");
+    setIndex(items.length - 1);
+    setCycleComplete(true);
   };
+
+  const runFrom = async (start: number) => {
+    playingRef.current = true;
+    setIsPlaying(true);
+    setCycleComplete(false);
+    setFinishedLastItem(false);
+
+    let pos = start;
+    while (playingRef.current) {
+      for (let i = pos; i < items.length; i++) {
+        const completed = await playItem(items[i], i);
+        if (!playingRef.current) {
+          if (completed && i === items.length - 1) finishRun();
+          return;
+        }
+      }
+
+      const { loopMode } = loadPlaybackSettings();
+      if (loopMode === "repeat") {
+        pos = 0;
+        continue;
+      }
+      break;
+    }
+
+    if (playingRef.current) finishRun();
+  };
+
   const pause = () => {
     stopSession();
   };
   const play = () => runFrom(index);
+  const replayFromStart = () => {
+    setFinishedLastItem(false);
+    setCycleComplete(false);
+    setIndex(0);
+    runFrom(0);
+  };
   const go = (i: number) => {
     pause();
+    setCycleComplete(false);
+    setFinishedLastItem(false);
     const ni = (i + items.length) % items.length;
     setIndex(ni);
     setPhase("word");
@@ -1083,6 +1214,7 @@ function StudyView({
   };
 
   const progress = ((index + 1) / items.length) * 100;
+  const playback = loadPlaybackSettings();
 
   return (
     <div style={{ padding: "14px 20px" }}>
@@ -1314,51 +1446,35 @@ function StudyView({
           gap: 5,
         }}
       >
-        <Repeat size={13} /> 단어 → 뜻 → 따라하기 → 예문 → 예문뜻 → 따라하기
+        <Repeat size={13} /> (단어→텀→뜻)×{playback.wordRepeatCount} →
+        (예문→텀→예문뜻)×{playback.exampleRepeatCount}
       </div>
 
-      {/* 따라하기 텀 조절 */}
-      <div
-        style={{
-          marginTop: 20,
-          background: C.card,
-          border: `1px solid ${C.border}`,
-          borderRadius: 12,
-          padding: "14px 16px",
-        }}
-      >
-        <div
+      {index === items.length - 1 &&
+        !isPlaying &&
+        (cycleComplete || finishedLastItem) && (
+        <button
+          onClick={replayFromStart}
           style={{
             display: "flex",
-            justifyContent: "space-between",
             alignItems: "center",
-            marginBottom: 8,
+            justifyContent: "center",
+            gap: 8,
+            width: "100%",
+            marginTop: 16,
+            padding: "13px 0",
+            borderRadius: 12,
+            border: `1px solid ${C.goldDim}`,
+            cursor: "pointer",
+            background: C.elevated,
+            color: C.gold,
+            fontWeight: 700,
+            fontSize: 15,
           }}
         >
-          <span style={{ fontSize: 13, color: C.muted }}>따라하기 텀</span>
-          <span
-            style={{
-              fontFamily: "ui-monospace, monospace",
-              fontSize: 14,
-              color: C.gold,
-            }}
-          >
-            {gapSec.toFixed(1)}초
-          </span>
-        </div>
-        <input
-          type="range"
-          min="0.5"
-          max="6"
-          step="0.5"
-          value={gapSec}
-          onChange={(e) => setGapSec(parseFloat(e.target.value))}
-          style={{ width: "100%", accentColor: C.gold, cursor: "pointer" }}
-        />
-        <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>
-          운전 중엔 길게, 책상에선 짧게
-        </div>
-      </div>
+          <RotateCcw size={18} /> 처음부터 다시 듣기
+        </button>
+      )}
     </div>
   );
 }

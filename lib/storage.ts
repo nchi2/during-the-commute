@@ -1,22 +1,110 @@
 const STORAGE_KEY = "english-study";
 
-export type LevelId = "TEST" | "basic" | "intermediate" | "advanced" | "arena";
+export type LevelId =
+  | "basic"
+  | "intermediate"
+  | "advanced"
+  | "toeic-750"
+  | "namjeonghyeon"
+  | "eomuni";
+
+export type LoopMode = "stop" | "repeat";
+
+export type PlaybackSettings = {
+  gapSec: number;
+  wordRepeatCount: number;
+  exampleRepeatCount: number;
+  setGapSec: number;
+  loopMode: LoopMode;
+  itemGapEnabled: boolean;
+  itemGapSec: number;
+};
+
+const ACTIVE_LEVELS: LevelId[] = ["namjeonghyeon"];
+
+const ALL_LEVEL_IDS: LevelId[] = [
+  "basic",
+  "intermediate",
+  "advanced",
+  "toeic-750",
+  "namjeonghyeon",
+  "eomuni",
+];
 
 export type QuizScoreEntry = {
   score: number;
   total: number;
 };
 
-export type StoredSettings = {
-  gapSec: number;
+export type StoredSettings = PlaybackSettings & {
   quizScores: Record<string, QuizScoreEntry>;
   selectedLevel?: LevelId;
 };
 
-const DEFAULTS: StoredSettings = {
-  gapSec: 2.5,
-  quizScores: {},
+export const PLAYBACK_DEFAULTS: PlaybackSettings = {
+  gapSec: 3.0,
+  wordRepeatCount: 2,
+  exampleRepeatCount: 2,
+  setGapSec: 0.8,
+  loopMode: "stop",
+  itemGapEnabled: true,
+  itemGapSec: 0.7,
 };
+
+function isLevelId(value: unknown): value is LevelId {
+  return (
+    typeof value === "string" &&
+    (ALL_LEVEL_IDS as string[]).includes(value)
+  );
+}
+
+function normalizeSelectedLevel(raw: unknown): LevelId | undefined {
+  if (raw === "TEST" || raw === "namjeonghyeon") return "namjeonghyeon";
+  if (isLevelId(raw) && ACTIVE_LEVELS.includes(raw)) return raw;
+  return undefined;
+}
+
+function clamp(n: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, n));
+}
+
+function clampInt(n: number, min: number, max: number): number {
+  return clamp(Math.round(n), min, max);
+}
+
+function normalizePlayback(raw: Partial<StoredSettings>): PlaybackSettings {
+  return {
+    gapSec:
+      typeof raw.gapSec === "number"
+        ? clamp(raw.gapSec, 0.2, 6)
+        : PLAYBACK_DEFAULTS.gapSec,
+    wordRepeatCount:
+      typeof raw.wordRepeatCount === "number"
+        ? clampInt(raw.wordRepeatCount, 1, 3)
+        : PLAYBACK_DEFAULTS.wordRepeatCount,
+    exampleRepeatCount:
+      typeof raw.exampleRepeatCount === "number"
+        ? clampInt(raw.exampleRepeatCount, 1, 3)
+        : PLAYBACK_DEFAULTS.exampleRepeatCount,
+    setGapSec:
+      typeof raw.setGapSec === "number"
+        ? clamp(raw.setGapSec, 0.3, 2)
+        : PLAYBACK_DEFAULTS.setGapSec,
+    loopMode: raw.loopMode === "repeat" ? "repeat" : "stop",
+    itemGapEnabled:
+      typeof raw.itemGapEnabled === "boolean"
+        ? raw.itemGapEnabled
+        : PLAYBACK_DEFAULTS.itemGapEnabled,
+    itemGapSec:
+      typeof raw.itemGapSec === "number"
+        ? clamp(raw.itemGapSec, 0.3, 1.5)
+        : PLAYBACK_DEFAULTS.itemGapSec,
+  };
+}
+
+export function isActiveLevel(id: LevelId): boolean {
+  return ACTIVE_LEVELS.includes(id);
+}
 
 function readRaw(): Partial<StoredSettings> {
   if (typeof window === "undefined") return {};
@@ -37,15 +125,47 @@ function write(partial: Partial<StoredSettings>) {
 
 export function load(): StoredSettings {
   const raw = readRaw();
+  const playback = normalizePlayback(raw);
   return {
-    gapSec: typeof raw.gapSec === "number" ? raw.gapSec : DEFAULTS.gapSec,
+    ...playback,
     quizScores:
       raw.quizScores && typeof raw.quizScores === "object"
         ? raw.quizScores
-        : DEFAULTS.quizScores,
-    selectedLevel:
-      raw.selectedLevel === "TEST" ? "TEST" : undefined,
+        : {},
+    selectedLevel: normalizeSelectedLevel(raw.selectedLevel),
   };
+}
+
+export function loadPlaybackSettings(): PlaybackSettings {
+  const {
+    gapSec,
+    wordRepeatCount,
+    exampleRepeatCount,
+    setGapSec,
+    loopMode,
+    itemGapEnabled,
+    itemGapSec,
+  } = load();
+  return {
+    gapSec,
+    wordRepeatCount,
+    exampleRepeatCount,
+    setGapSec,
+    loopMode,
+    itemGapEnabled,
+    itemGapSec,
+  };
+}
+
+export function savePlaybackSettings(partial: Partial<PlaybackSettings>) {
+  const current = loadPlaybackSettings();
+  const next = normalizePlayback({ ...current, ...partial });
+  write(next);
+}
+
+/** @deprecated savePlaybackSettings 사용 */
+export function saveGapSec(gapSec: number) {
+  savePlaybackSettings({ gapSec });
 }
 
 export function loadSelectedLevel(): LevelId | null {
@@ -60,10 +180,6 @@ export function saveSelectedLevel(level: LevelId | null) {
     return;
   }
   write({ selectedLevel: level });
-}
-
-export function saveGapSec(gapSec: number) {
-  write({ gapSec });
 }
 
 export function saveQuizScore(score: number, total: number) {
