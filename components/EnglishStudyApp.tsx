@@ -33,12 +33,11 @@ import {
 } from "@/lib/audio";
 import { GROUPS } from "@/data/groups.mjs";
 
-type Pos = "동사" | "명사" | "형용사" | "부사";
 type Tab = "study" | "quiz";
 type StudyPhase = "word" | "example";
 
 type Word = {
-  pos: Pos;
+  pos: string;
   word: string;
   mean: string;
   ex: string;
@@ -61,12 +60,16 @@ const C = {
   border: "#2E3344",
 };
 
-const POS_COLOR: Record<Pos, string> = {
+const POS_COLOR: Record<string, string> = {
   동사: "#E8B33D",
   명사: "#7CA8E0",
   형용사: "#5BBF8E",
   부사: "#C98BD0",
 };
+
+function posColor(pos: string): string {
+  return POS_COLOR[pos] ?? C.muted;
+}
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const shuffle = <T,>(a: T[]): T[] => {
@@ -501,8 +504,8 @@ function GroupPicker({
                             style={{
                               fontSize: 11,
                               fontWeight: 700,
-                              color: POS_COLOR[w.pos as Pos] || C.muted,
-                              border: `1px solid ${POS_COLOR[w.pos as Pos] || C.muted}`,
+                              color: posColor(w.pos),
+                              border: `1px solid ${posColor(w.pos)}`,
                               padding: "1px 6px",
                               borderRadius: 5,
                             }}
@@ -771,8 +774,8 @@ function StudyView({
             style={{
               fontSize: 11,
               fontWeight: 700,
-              color: POS_COLOR[cur.pos] || C.muted,
-              border: `1px solid ${POS_COLOR[cur.pos] || C.muted}`,
+              color: posColor(cur.pos),
+              border: `1px solid ${posColor(cur.pos)}`,
               padding: "2px 8px",
               borderRadius: 6,
             }}

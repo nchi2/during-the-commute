@@ -1,7 +1,5 @@
-type Pos = "동사" | "명사" | "형용사" | "부사";
-
 export type Word = {
-  pos: Pos;
+  pos: string;
   word: string;
   mean: string;
   ex: string;
