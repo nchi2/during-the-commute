@@ -583,10 +583,21 @@ function LevelSelectScreen({
       style={{
         background: C.bg,
         color: C.text,
-        minHeight: "100vh",
+        height: "100dvh",
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
         fontFamily: "system-ui, -apple-system, sans-serif",
       }}
     >
+      <div
+        style={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: "auto",
+          WebkitOverflowScrolling: "touch",
+        }}
+      >
       <div
         style={{
           maxWidth: 480,
@@ -719,6 +730,7 @@ function LevelSelectScreen({
             {toast}
           </div>
         )}
+      </div>
       </div>
     </div>
   );
