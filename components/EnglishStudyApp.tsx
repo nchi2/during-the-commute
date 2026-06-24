@@ -37,13 +37,24 @@ import {
   cancelPlayback,
   preloadWordAudio,
   preloadWordSequence,
+  reclaimAudioSession,
   speakEnglishExample,
   speakEnglishExampleNow,
   speakEnglishWord,
   speakEnglishWordNow,
   speakKoreanExKo,
   speakKoreanMean,
+  startAudioKeepAlive,
+  stopAudioKeepAlive,
+  stopStudyPlayback,
 } from "@/lib/audio";
+import {
+  clearMediaSessionHandlers,
+  registerMediaSessionHandlers,
+  setMediaPlaybackState,
+  updateMediaPositionState,
+  updateStudyMediaMetadata,
+} from "@/lib/media-session";
 import { GROUPS } from "@/data/groups.mjs";
 import { getWordCatalog, resolveWordIds } from "@/lib/playlists";
 import type { WordId } from "@/lib/playlists";
@@ -1253,23 +1264,60 @@ function StudyView({
   const [phase, setPhase] = useState<StudyPhase>("word");
   const [showKo, setShowKo] = useState(true);
   const playingRef = useRef(false);
+  const indexRef = useRef(0);
+  const itemsRef = useRef(items);
   const cur = items[index];
+
+  indexRef.current = index;
+  itemsRef.current = items;
 
   useEffect(() => {
     return () => {
       playingRef.current = false;
-      cancelPlayback();
+      stopStudyPlayback();
+      clearMediaSessionHandlers();
     };
+  }, []);
+
+  useEffect(() => {
+    if (!cur) return;
+    const phaseLabel = phase === "word" ? "단어" : "예문";
+    updateStudyMediaMetadata({
+      title: cur.word,
+      artist: showKo ? cur.mean : "오늘의 단어",
+      album: `${cur.concept} · ${index + 1}/${items.length} · ${phaseLabel}`,
+    });
+    updateMediaPositionState({
+      duration: items.length,
+      position: index,
+    });
+  }, [cur, index, phase, showKo, items.length]);
+
+  useEffect(() => {
+    setMediaPlaybackState(isPlaying ? "playing" : "paused");
+  }, [isPlaying]);
+
+  useEffect(() => {
+    const onVisibility = () => {
+      if (!document.hidden && playingRef.current) {
+        reclaimAudioSession();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
   }, []);
 
   const stopSession = () => {
     playingRef.current = false;
     cancelPlayback();
+    stopAudioKeepAlive();
     setIsPlaying(false);
+    setMediaPlaybackState("paused");
   };
 
   const handleBack = () => {
     stopSession();
+    clearMediaSessionHandlers();
     onBack();
   };
 
@@ -1326,10 +1374,12 @@ function StudyView({
 
   const finishRun = () => {
     playingRef.current = false;
+    stopAudioKeepAlive();
     setIsPlaying(false);
     setPhase("word");
     setIndex(items.length - 1);
     setCycleComplete(true);
+    setMediaPlaybackState("paused");
   };
 
   const runFrom = async (start: number) => {
@@ -1337,6 +1387,9 @@ function StudyView({
     setIsPlaying(true);
     setCycleComplete(false);
     setFinishedLastItem(false);
+    startAudioKeepAlive();
+    reclaimAudioSession();
+    setMediaPlaybackState("playing");
 
     let pos = start;
     while (playingRef.current) {
@@ -1363,6 +1416,64 @@ function StudyView({
     stopSession();
   };
   const play = () => runFrom(index);
+
+  const jumpToWord = (ni: number, resumePlayback: boolean) => {
+    cancelPlayback();
+    playingRef.current = false;
+    setIsPlaying(false);
+    setCycleComplete(false);
+    setFinishedLastItem(false);
+    setIndex(ni);
+    setPhase("word");
+    if (resumePlayback) {
+      void Promise.resolve().then(() => runFrom(ni));
+    } else {
+      stopAudioKeepAlive();
+      setMediaPlaybackState("paused");
+      speakEnglishWordNow(itemsRef.current[ni].word);
+    }
+  };
+
+  const sessionApiRef = useRef({
+    play: () => {},
+    pause: () => {},
+    next: () => {},
+    prev: () => {},
+  });
+
+  sessionApiRef.current = {
+    play: () => {
+      if (!playingRef.current) runFrom(indexRef.current);
+    },
+    pause: () => {
+      if (playingRef.current) stopSession();
+    },
+    next: () => {
+      const list = itemsRef.current;
+      const { loopMode } = loadPlaybackSettings();
+      let ni = indexRef.current + 1;
+      if (ni >= list.length) {
+        if (loopMode === "repeat") ni = 0;
+        else return;
+      }
+      jumpToWord(ni, playingRef.current);
+    },
+    prev: () => {
+      const ni = Math.max(0, indexRef.current - 1);
+      jumpToWord(ni, playingRef.current);
+    },
+  };
+
+  useEffect(() => {
+    registerMediaSessionHandlers({
+      onPlay: () => sessionApiRef.current.play(),
+      onPause: () => sessionApiRef.current.pause(),
+      onNext: () => sessionApiRef.current.next(),
+      onPrev: () => sessionApiRef.current.prev(),
+    });
+    return () => clearMediaSessionHandlers();
+  }, []);
+
   const replayFromStart = () => {
     setFinishedLastItem(false);
     setCycleComplete(false);

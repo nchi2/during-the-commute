@@ -19,17 +19,59 @@ export function exKoAudioUrl(word: string): string {
 }
 
 let sharedAudio: HTMLAudioElement | null = null;
+let keepAliveAudio: HTMLAudioElement | null = null;
 let activeResolve: (() => void) | null = null;
 let onCanPlayHandler: (() => void) | null = null;
 let stopRequested = false;
 const preloaded = new Set<string>();
 
+/** iOS 백그라운드 오디오 세션 유지용 무음 루프 (~0.3s) */
+const SILENT_MP3 =
+  "data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABhgC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAAYYoRwmHAAAAAAD/+1DEAAAAAA0gAAAAABJhwAAAEAAAABAAAAAAAAAAAAAAAAAAAA";
+
+function attachAudioToDom(audio: HTMLAudioElement): void {
+  if (typeof document === "undefined") return;
+  if (audio.parentElement) return;
+  audio.style.display = "none";
+  document.body.appendChild(audio);
+}
+
 function getSharedAudio(): HTMLAudioElement {
   if (!sharedAudio) {
     sharedAudio = new Audio();
     sharedAudio.preload = "auto";
+    attachAudioToDom(sharedAudio);
   }
   return sharedAudio;
+}
+
+/** 학습 자동재생 중 iOS 오디오 세션 유지 (무음 루프) */
+export function startAudioKeepAlive(): void {
+  if (keepAliveAudio) return;
+  keepAliveAudio = new Audio();
+  keepAliveAudio.loop = true;
+  keepAliveAudio.volume = 0.001;
+  keepAliveAudio.preload = "auto";
+  keepAliveAudio.src = SILENT_MP3;
+  attachAudioToDom(keepAliveAudio);
+  void keepAliveAudio.play().catch(() => {
+    /* 사용자 제스처 없으면 실패할 수 있음 */
+  });
+}
+
+export function stopAudioKeepAlive(): void {
+  if (!keepAliveAudio) return;
+  keepAliveAudio.pause();
+  keepAliveAudio.src = "";
+  keepAliveAudio.remove();
+  keepAliveAudio = null;
+}
+
+/** 백그라운드 복귀 시 오디오 세션 재활성화 */
+export function reclaimAudioSession(): void {
+  if (keepAliveAudio && keepAliveAudio.paused) {
+    void keepAliveAudio.play().catch(() => {});
+  }
 }
 
 export function cancelPlayback(): void {
@@ -55,6 +97,12 @@ export function cancelPlayback(): void {
     activeResolve = null;
     resolve();
   }
+}
+
+/** 학습 세션 종료 시 keepAlive까지 정리 */
+export function stopStudyPlayback(): void {
+  cancelPlayback();
+  stopAudioKeepAlive();
 }
 
 function playMp3(url: string): Promise<boolean> {
