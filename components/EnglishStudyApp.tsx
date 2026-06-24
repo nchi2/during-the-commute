@@ -45,7 +45,7 @@ import {
   speakKoreanMean,
 } from "@/lib/audio";
 import { GROUPS } from "@/data/groups.mjs";
-import { makeWordId } from "@/lib/playlists";
+import { getWordCatalog, resolveWordIds } from "@/lib/playlists";
 import type { WordId } from "@/lib/playlists";
 import { useHiddenWords } from "@/hooks/useHiddenWords";
 import PlaylistSection from "@/components/PlaylistSection";
@@ -183,7 +183,7 @@ export default function EnglishStudyApp() {
   const [levelReady, setLevelReady] = useState(false);
   const [levelToast, setLevelToast] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("study");
-  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [selected, setSelected] = useState<Set<WordId>>(new Set());
   const [started, setStarted] = useState(false);
   const [playlistSession, setPlaylistSession] = useState<{
     mode: "study" | "quiz";
@@ -268,29 +268,12 @@ export default function EnglishStudyApp() {
     setPlaylistReset((n) => n + 1);
   };
 
-  const toggleGroup = (id: number) => {
-    setSelected((prev) => {
-      const n = new Set(prev);
-      if (n.has(id)) n.delete(id);
-      else n.add(id);
-      return n;
-    });
-  };
-  const allSelected = selected.size === GROUPS.length;
-  const toggleAll = () =>
-    setSelected(allSelected ? new Set() : new Set(GROUPS.map((g) => g.id)));
-
-  const items = useMemo(
-    () =>
-      GROUPS.filter((g) => selected.has(g.id)).flatMap((g) =>
-        g.words
-          .filter(
-            (w) => !hiddenIds.has(makeWordId(g.id, w.word, w.pos)),
-          )
-          .map((w) => ({ ...w, concept: g.concept, conceptKo: g.ko })),
-      ),
-    [selected, hiddenIds],
-  );
+  const items = useMemo(() => {
+    const ids = getWordCatalog()
+      .filter((w) => selected.has(w.id) && !hiddenIds.has(w.id))
+      .map((w) => w.id);
+    return resolveWordIds(ids);
+  }, [selected, hiddenIds]);
 
   if (!levelReady) {
     return (
@@ -314,7 +297,8 @@ export default function EnglishStudyApp() {
       style={{
         background: C.bg,
         color: C.text,
-        minHeight: "100dvh",
+        height: "100%",
+        overflow: "hidden",
         display: "flex",
         flexDirection: "column",
         fontFamily: "system-ui, -apple-system, sans-serif",
@@ -510,13 +494,9 @@ export default function EnglishStudyApp() {
 
             {!playlistSession && tab === "study" && !started && (
               <GroupPicker
-                {...{
-                  selected,
-                  toggleGroup,
-                  allSelected,
-                  toggleAll,
-                  count: items.length,
-                }}
+                selected={selected}
+                onSelectedChange={setSelected}
+                count={items.length}
                 onStart={() => {
                   cancelPlayback();
                   if (items.length) setStarted(true);
@@ -539,13 +519,9 @@ export default function EnglishStudyApp() {
             )}
             {!playlistSession && tab === "quiz" && !started && (
               <GroupPicker
-                {...{
-                  selected,
-                  toggleGroup,
-                  allSelected,
-                  toggleAll,
-                  count: items.length,
-                }}
+                selected={selected}
+                onSelectedChange={setSelected}
+                count={items.length}
                 onStart={() => {
                   cancelPlayback();
                   if (items.length >= 1) setStarted(true);
@@ -750,9 +726,7 @@ function LevelSelectScreen({
 
 function GroupPicker({
   selected,
-  toggleGroup,
-  allSelected,
-  toggleAll,
+  onSelectedChange,
   onStart,
   count,
   ctaLabel,
@@ -763,10 +737,8 @@ function GroupPicker({
   onRestoreWord,
   onRestoreAllHidden,
 }: {
-  selected: Set<number>;
-  toggleGroup: (id: number) => void;
-  allSelected: boolean;
-  toggleAll: () => void;
+  selected: Set<WordId>;
+  onSelectedChange: (s: Set<WordId>) => void;
   onStart: () => void;
   count: number;
   ctaLabel: string;
@@ -780,78 +752,67 @@ function GroupPicker({
   const [searchQuery, setSearchQuery] = useState("");
   const [sortMode, setSortMode] = useState<"default" | "az">("default");
   const [showHidden, setShowHidden] = useState(false);
-  const [undo, setUndo] = useState<{ id: WordId; label: string } | null>(null);
+  const [undo, setUndo] = useState<{ ids: WordId[]; label: string } | null>(
+    null,
+  );
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  type PickerWord = {
-    id: WordId;
-    groupId: number;
-    concept: string;
-    conceptKo: string;
-    pos: string;
-    word: string;
-    mean: string;
-    ex: string;
-    exKo: string;
-    order: number;
-  };
-
-  const allPickerWords = useMemo<PickerWord[]>(
-    () =>
-      GROUPS.flatMap((g, gi) =>
-        g.words.map((w, wi) => ({
-          id: makeWordId(g.id, w.word, w.pos),
-          groupId: g.id,
-          concept: g.concept,
-          conceptKo: g.ko,
-          pos: w.pos,
-          word: w.word,
-          mean: w.mean,
-          ex: w.ex,
-          exKo: w.exKo,
-          order: gi * 10000 + wi,
-        })),
-      ),
-    [],
-  );
-
+  const allWords = useMemo(() => getWordCatalog(), []);
   const query = searchQuery.trim().toLowerCase();
-  const showGroups = !query && sortMode === "default";
 
   const displayedWords = useMemo(() => {
-    const matchesQuery = (w: PickerWord) =>
-      w.word.toLowerCase().includes(query) ||
-      w.mean.toLowerCase().includes(query);
-
-    const base = (query ? allPickerWords.filter(matchesQuery) : [...allPickerWords])
-      .filter((w) => !hiddenIds.has(w.id));
-
+    let list = allWords.filter((w) => !hiddenIds.has(w.id));
+    if (query) {
+      list = list.filter(
+        (w) =>
+          w.word.toLowerCase().includes(query) ||
+          w.mean.toLowerCase().includes(query),
+      );
+    }
     if (sortMode === "az") {
-      return base.sort((a, b) =>
+      list = [...list].sort((a, b) =>
         a.word.localeCompare(b.word, "en", { sensitivity: "base" }),
       );
     }
-    return base;
-  }, [allPickerWords, query, sortMode, hiddenIds]);
+    return list;
+  }, [allWords, query, sortMode, hiddenIds]);
 
-  const visibleWordCount = (groupId: number) => {
-    const g = GROUPS.find((x) => x.id === groupId);
-    if (!g) return 0;
-    return g.words.filter(
-      (w) => !hiddenIds.has(makeWordId(g.id, w.word, w.pos)),
-    ).length;
+  const toggleWord = (id: WordId) => {
+    const next = new Set(selected);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    onSelectedChange(next);
+  };
+
+  const visibleIds = displayedWords.map((w) => w.id);
+  const allVisibleSelected =
+    visibleIds.length > 0 && visibleIds.every((id) => selected.has(id));
+
+  const toggleAllVisible = () => {
+    const next = new Set(selected);
+    if (allVisibleSelected) {
+      for (const id of visibleIds) next.delete(id);
+    } else {
+      for (const id of visibleIds) next.add(id);
+    }
+    onSelectedChange(next);
   };
 
   const handleHideWord = (id: WordId, label: string) => {
     onHideWord(id);
-    setUndo({ id, label });
+    if (selected.has(id)) {
+      const next = new Set(selected);
+      next.delete(id);
+      onSelectedChange(next);
+    }
+    setUndo({ ids: [id], label });
     if (undoTimer.current) clearTimeout(undoTimer.current);
     undoTimer.current = setTimeout(() => setUndo(null), 4000);
   };
 
   const handleUndo = () => {
     if (!undo) return;
-    onRestoreWord(undo.id);
+    undo.ids.forEach((id) => onRestoreWord(id));
     setUndo(null);
     if (undoTimer.current) clearTimeout(undoTimer.current);
   };
@@ -874,22 +835,17 @@ function GroupPicker({
     border: `1.5px solid ${on ? C.gold : C.muted}`,
   });
 
-  const rowButtonStyle = (on: boolean): CSSProperties => ({
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    textAlign: "left",
-    padding: "13px 14px",
-    borderRadius: 12,
-    cursor: "pointer",
-    background: on ? C.elevated : C.card,
-    border: `1px solid ${on ? C.gold : C.border}`,
-    width: "100%",
-    color: C.text,
-  });
-
   return (
-    <>
+    <div
+      style={{
+        flex: 1,
+        minHeight: 0,
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+        position: "relative",
+      }}
+    >
       {showHidden ? (
         <div
           style={{
@@ -925,37 +881,48 @@ function GroupPicker({
             zIndex: 20,
           }}
         >
-        <div style={{ position: "relative", marginBottom: 12 }}>
-          <Search
-            size={16}
-            color={C.muted}
-            style={{
-              position: "absolute",
-              left: 12,
-              top: "50%",
-              transform: "translateY(-50%)",
-              pointerEvents: "none",
-            }}
-          />
-          <input
-            type="search"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="단어·뜻 검색"
-            style={{
-              width: "100%",
-              boxSizing: "border-box",
-              padding: "11px 12px 11px 36px",
-              borderRadius: 10,
-              border: `1px solid ${C.border}`,
-              background: C.card,
-              color: C.text,
-              fontSize: 15,
-              outline: "none",
-            }}
-          />
+          <div style={{ position: "relative" }}>
+            <Search
+              size={16}
+              color={C.muted}
+              style={{
+                position: "absolute",
+                left: 12,
+                top: "50%",
+                transform: "translateY(-50%)",
+                pointerEvents: "none",
+              }}
+            />
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="단어·뜻 검색"
+              style={{
+                width: "100%",
+                boxSizing: "border-box",
+                padding: "11px 12px 11px 36px",
+                borderRadius: 10,
+                border: `1px solid ${C.border}`,
+                background: C.card,
+                color: C.text,
+                fontSize: 15,
+                outline: "none",
+              }}
+            />
+          </div>
         </div>
 
+        <div
+          style={{
+            flex: 1,
+            minHeight: 0,
+            overflowY: "auto",
+            WebkitOverflowScrolling: "touch",
+            padding: "12px 20px",
+            paddingBottom: "calc(108px + env(safe-area-inset-bottom, 0px))",
+          }}
+        >
         <div
           style={{
             display: "flex",
@@ -971,6 +938,7 @@ function GroupPicker({
           ).map(({ id, label }) => (
             <button
               key={id}
+              type="button"
               onClick={() => setSortMode(id)}
               style={{
                 flex: 1,
@@ -989,43 +957,66 @@ function GroupPicker({
           ))}
         </div>
 
-        <button
-          type="button"
-          onClick={() => setShowHidden(true)}
-          style={{
-            display: "block",
-            width: "100%",
-            marginBottom: 12,
-            padding: "9px 12px",
-            borderRadius: 8,
-            border: `1px solid ${C.border}`,
-            background: C.card,
-            color: hiddenCount > 0 ? C.gold : C.muted,
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: "pointer",
-            textAlign: "left",
-          }}
-        >
-          {hiddenCount > 0 ? `숨김 ${hiddenCount}개 보기` : "숨긴 단어 보기"}
-        </button>
+        {hiddenCount > 0 ? (
+          <button
+            type="button"
+            onClick={() => setShowHidden(true)}
+            style={{
+              display: "block",
+              width: "100%",
+              marginBottom: 12,
+              padding: "9px 12px",
+              borderRadius: 8,
+              border: `1px solid ${C.border}`,
+              background: C.card,
+              color: C.gold,
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: "pointer",
+              textAlign: "left",
+            }}
+          >
+            {`숨김 ${hiddenCount}개 보기`}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowHidden(true)}
+            style={{
+              display: "block",
+              width: "100%",
+              marginBottom: 8,
+              padding: "4px 0",
+              border: "none",
+              background: "transparent",
+              color: C.muted,
+              fontSize: 12,
+              fontWeight: 400,
+              opacity: 0.45,
+              cursor: "pointer",
+              textAlign: "left",
+            }}
+          >
+            숨긴 단어 보기
+          </button>
+        )}
 
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
+            marginBottom: 12,
           }}
         >
           <span style={{ fontSize: 13, color: C.muted }}>
-            {showGroups
-              ? "그룹을 골라 플레이리스트를 만들어"
-              : query
-                ? `검색 결과 ${displayedWords.length}개`
-                : `전체 ${displayedWords.length}개 단어`}
+            {query
+              ? `검색 결과 ${displayedWords.length}개`
+              : `${selected.size}개 선택 · ${displayedWords.length}개 표시`}
           </span>
           <button
-            onClick={toggleAll}
+            type="button"
+            onClick={toggleAllVisible}
             style={{
               background: "none",
               border: `1px solid ${C.border}`,
@@ -1036,71 +1027,22 @@ function GroupPicker({
               cursor: "pointer",
             }}
           >
-            {allSelected ? "전체 해제" : "전체 선택"}
+            {allVisibleSelected ? "전체 해제" : "전체 선택"}
           </button>
         </div>
-        </div>
 
-        <div
-          style={{
-            flex: 1,
-            minHeight: 0,
-            overflowY: "auto",
-            WebkitOverflowScrolling: "touch",
-            padding: "12px 20px",
-            paddingBottom: "calc(108px + env(safe-area-inset-bottom, 0px))",
-          }}
-        >
         <div
           key={query || `sort-${sortMode}`}
           style={{ display: "flex", flexDirection: "column", gap: 8 }}
         >
-          {showGroups ? (
-            GROUPS.map((g) => {
-              const on = selected.has(g.id);
-              return (
-                <button
-                  key={g.id}
-                  onClick={() => toggleGroup(g.id)}
-                  style={rowButtonStyle(on)}
-                >
-                  <div style={checkboxStyle(on)}>
-                    {on && <Check size={15} color="#1A1408" strokeWidth={3} />}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 16, fontWeight: 700 }}>
-                      {g.concept}{" "}
-                      <span
-                        style={{
-                          color: C.muted,
-                          fontWeight: 500,
-                          fontSize: 14,
-                        }}
-                      >
-                        · {g.ko}
-                      </span>
-                    </div>
-                  </div>
-                  <span
-                    style={{
-                      fontFamily: "ui-monospace, monospace",
-                      fontSize: 13,
-                      color: C.muted,
-                    }}
-                  >
-                    {visibleWordCount(g.id)}
-                  </span>
-                </button>
-              );
-            })
-          ) : displayedWords.length > 0 ? (
+          {displayedWords.length > 0 ? (
             displayedWords.map((w) => {
-              const on = selected.has(w.groupId);
+              const on = selected.has(w.id);
               return (
                 <SwipeableWordRow
-                  key={w.order}
+                  key={w.id}
                   onHide={() => handleHideWord(w.id, w.word)}
-                  onClick={() => toggleGroup(w.groupId)}
+                  onClick={() => toggleWord(w.id)}
                   rowStyle={{
                     padding: "13px 14px",
                     borderRadius: 12,
@@ -1168,7 +1110,7 @@ function GroupPicker({
                 fontSize: 14,
               }}
             >
-              검색 결과가 없어요
+              {query ? "검색 결과가 없어요" : "표시할 단어가 없어요"}
             </div>
           )}
         </div>
@@ -1281,7 +1223,7 @@ function GroupPicker({
           </button>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 

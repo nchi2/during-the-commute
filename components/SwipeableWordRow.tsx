@@ -14,12 +14,11 @@ const C = {
   elevated: "#232735",
   text: "#F0EBDF",
   muted: "#8B8FA3",
-  red: "#E07A5F",
   border: "#2E3344",
 };
 
-const ACTION_WIDTH = 76;
-const SNAP_THRESHOLD = 38;
+const ACTION_WIDTH = 52;
+const SNAP_THRESHOLD = 30;
 
 type Props = {
   children: ReactNode;
@@ -38,47 +37,70 @@ export default function SwipeableWordRow({
   const [isDragging, setIsDragging] = useState(false);
   const dragStartX = useRef(0);
   const dragStartOffset = useRef(0);
+  const offsetRef = useRef(0);
+  const draggingRef = useRef(false);
   const moved = useRef(false);
 
-  const snapOpen = () => setOffsetX(-ACTION_WIDTH);
-  const snapClosed = () => setOffsetX(0);
+  offsetRef.current = offsetX;
+
+  const snapOpen = () => {
+    offsetRef.current = -ACTION_WIDTH;
+    setOffsetX(-ACTION_WIDTH);
+  };
+  const snapClosed = () => {
+    offsetRef.current = 0;
+    setOffsetX(0);
+  };
 
   const onPointerDown = (e: ReactPointerEvent) => {
+    if (e.button !== 0) return;
+    draggingRef.current = true;
     setIsDragging(true);
     moved.current = false;
     dragStartX.current = e.clientX;
-    dragStartOffset.current = offsetX;
+    dragStartOffset.current = offsetRef.current;
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   };
 
   const onPointerMove = (e: ReactPointerEvent) => {
-    if (!isDragging) return;
+    if (!draggingRef.current) return;
     const delta = e.clientX - dragStartX.current;
     if (Math.abs(delta) > 4) moved.current = true;
-    const next = Math.min(0, Math.max(-ACTION_WIDTH, dragStartOffset.current + delta));
+    const next = Math.min(
+      0,
+      Math.max(-ACTION_WIDTH, dragStartOffset.current + delta),
+    );
+    offsetRef.current = next;
     setOffsetX(next);
   };
 
   const onPointerUp = (e: ReactPointerEvent) => {
-    if (!isDragging) return;
+    if (!draggingRef.current) return;
+    draggingRef.current = false;
     setIsDragging(false);
     (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-    if (offsetX < -SNAP_THRESHOLD) snapOpen();
+    if (offsetRef.current < -SNAP_THRESHOLD) snapOpen();
     else snapClosed();
   };
 
   const handleRowClick = () => {
-    if (moved.current) return;
+    if (moved.current) {
+      moved.current = false;
+      return;
+    }
     onClick?.();
   };
 
-  const handleHide = () => {
+  const handleHide = (e: ReactPointerEvent | React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
     snapClosed();
     onHide();
   };
 
   return (
     <div
+      className="word-row-wrap"
       style={{
         position: "relative",
         borderRadius: 12,
@@ -98,24 +120,22 @@ export default function SwipeableWordRow({
         <button
           type="button"
           onClick={handleHide}
+          aria-label="숨기기"
+          title="숨기기"
           style={{
             width: ACTION_WIDTH,
             border: "none",
+            borderLeft: `1px solid ${C.border}`,
             cursor: "pointer",
-            background: C.red,
-            color: "#fff",
+            background: C.elevated,
+            color: C.muted,
             display: "flex",
-            flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            gap: 4,
-            fontSize: 12,
-            fontWeight: 700,
             flexShrink: 0,
           }}
         >
-          <EyeOff size={18} />
-          숨기기
+          <EyeOff size={15} strokeWidth={2} />
         </button>
       </div>
 
@@ -135,7 +155,7 @@ export default function SwipeableWordRow({
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 8,
+            gap: 4,
             ...rowStyle,
           }}
         >
@@ -160,14 +180,17 @@ export default function SwipeableWordRow({
           </button>
           <button
             type="button"
+            className="word-row-hide-btn"
             onClick={handleHide}
             aria-label="숨기기"
+            title="숨기기"
             style={{
               flexShrink: 0,
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              border: `1px solid ${C.border}`,
+              width: 28,
+              height: 28,
+              marginRight: 2,
+              borderRadius: 6,
+              border: "none",
               background: "transparent",
               color: C.muted,
               cursor: "pointer",
@@ -176,7 +199,7 @@ export default function SwipeableWordRow({
               justifyContent: "center",
             }}
           >
-            <EyeOff size={16} />
+            <EyeOff size={14} strokeWidth={2} />
           </button>
         </div>
       </div>

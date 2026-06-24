@@ -724,26 +724,49 @@ function WordPicker({
           ))}
         </div>
 
-        <button
-          type="button"
-          onClick={() => setShowHidden(true)}
-          style={{
-            display: "block",
-            width: "100%",
-            marginBottom: 12,
-            padding: "9px 12px",
-            borderRadius: 8,
-            border: `1px solid ${C.border}`,
-            background: C.card,
-            color: hiddenCount > 0 ? C.gold : C.muted,
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: "pointer",
-            textAlign: "left",
-          }}
-        >
-          {hiddenCount > 0 ? `숨김 ${hiddenCount}개 보기` : "숨긴 단어 보기"}
-        </button>
+        {hiddenCount > 0 ? (
+          <button
+            type="button"
+            onClick={() => setShowHidden(true)}
+            style={{
+              display: "block",
+              width: "100%",
+              marginBottom: 12,
+              padding: "9px 12px",
+              borderRadius: 8,
+              border: `1px solid ${C.border}`,
+              background: C.card,
+              color: C.gold,
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: "pointer",
+              textAlign: "left",
+            }}
+          >
+            {`숨김 ${hiddenCount}개 보기`}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowHidden(true)}
+            style={{
+              display: "block",
+              width: "100%",
+              marginBottom: 8,
+              padding: "4px 0",
+              border: "none",
+              background: "transparent",
+              color: C.muted,
+              fontSize: 12,
+              fontWeight: 400,
+              opacity: 0.45,
+              cursor: "pointer",
+              textAlign: "left",
+            }}
+          >
+            숨긴 단어 보기
+          </button>
+        )}
 
         <div
           style={{
