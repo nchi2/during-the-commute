@@ -1,21 +1,54 @@
 import { sanitizeAudioFilename } from "./audio-filename.mjs";
+import {
+  DEFAULT_AUDIO_SUBDIR,
+  exampleAudioUrl as buildExampleAudioUrl,
+  exKoAudioUrl as buildExKoAudioUrl,
+  getAudioSubdirForLevel,
+  getAudioSubdirForMomLevel,
+  meanAudioUrl as buildMeanAudioUrl,
+  skipsExamplePhaseForAudioSubdir,
+  wordAudioUrl as buildWordAudioUrl,
+} from "./audio-paths.mjs";
+import type { LevelId } from "./storage";
 
 export { sanitizeAudioFilename };
 
+let currentAudioSubdir = DEFAULT_AUDIO_SUBDIR;
+
+export function setAudioSubdir(subdir: string): void {
+  currentAudioSubdir = subdir;
+}
+
+export function getAudioSubdir(): string {
+  return currentAudioSubdir;
+}
+
+export function setAudioSubdirForLevel(level: LevelId): void {
+  setAudioSubdir(getAudioSubdirForLevel(level));
+}
+
+export function setAudioSubdirForMomLevel(momLevelId: string): void {
+  setAudioSubdir(getAudioSubdirForMomLevel(momLevelId));
+}
+
+export function skipsExamplePhase(): boolean {
+  return skipsExamplePhaseForAudioSubdir(currentAudioSubdir);
+}
+
 export function wordAudioUrl(word: string): string {
-  return `/audio/${sanitizeAudioFilename(word)}.mp3`;
+  return buildWordAudioUrl(currentAudioSubdir, word);
 }
 
 export function exampleAudioUrl(word: string): string {
-  return `/audio/${sanitizeAudioFilename(word)}-ex.mp3`;
+  return buildExampleAudioUrl(currentAudioSubdir, word);
 }
 
 export function meanAudioUrl(word: string): string {
-  return `/audio/${sanitizeAudioFilename(word)}-ko.mp3`;
+  return buildMeanAudioUrl(currentAudioSubdir, word);
 }
 
 export function exKoAudioUrl(word: string): string {
-  return `/audio/${sanitizeAudioFilename(word)}-exko.mp3`;
+  return buildExKoAudioUrl(currentAudioSubdir, word);
 }
 
 let sharedAudio: HTMLAudioElement | null = null;
@@ -239,12 +272,11 @@ export function preloadAudioUrl(url: string): void {
 }
 
 export function preloadWordAudio(word: string): void {
-  for (const url of [
-    wordAudioUrl(word),
-    meanAudioUrl(word),
-    exampleAudioUrl(word),
-    exKoAudioUrl(word),
-  ]) {
+  const urls = [wordAudioUrl(word), meanAudioUrl(word)];
+  if (!skipsExamplePhase()) {
+    urls.push(exampleAudioUrl(word), exKoAudioUrl(word));
+  }
+  for (const url of urls) {
     preloadAudioUrl(url);
   }
 }
@@ -254,12 +286,19 @@ export function preloadWordSequence(
   word: string,
   step: "word" | "mean" | "ex" | "exko",
 ): void {
-  const steps: Record<typeof step, string[]> = {
-    word: [meanAudioUrl(word), exampleAudioUrl(word), exKoAudioUrl(word)],
-    mean: [exampleAudioUrl(word), exKoAudioUrl(word)],
-    ex: [exKoAudioUrl(word)],
-    exko: [],
-  };
+  const steps: Record<typeof step, string[]> = skipsExamplePhase()
+    ? {
+        word: [meanAudioUrl(word)],
+        mean: [],
+        ex: [],
+        exko: [],
+      }
+    : {
+        word: [meanAudioUrl(word), exampleAudioUrl(word), exKoAudioUrl(word)],
+        mean: [exampleAudioUrl(word), exKoAudioUrl(word)],
+        ex: [exKoAudioUrl(word)],
+        exko: [],
+      };
   for (const url of steps[step]) preloadAudioUrl(url);
 }
 

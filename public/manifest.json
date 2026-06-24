@@ -1,7 +1,7 @@
 {
-  "name": "오늘의 단어",
-  "short_name": "단어",
-  "description": "매일 영어 단어 학습 & 퀴즈",
+  "name": "출퇴근 영어",
+  "short_name": "출퇴근",
+  "description": "출퇴근 영어 학습 & 퀴즈",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#12141C",

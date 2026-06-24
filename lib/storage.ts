@@ -20,7 +20,7 @@ export type PlaybackSettings = {
   itemGapSec: number;
 };
 
-const ACTIVE_LEVELS: LevelId[] = ["namjeonghyeon"];
+const ACTIVE_LEVELS: LevelId[] = ["namjeonghyeon", "eomuni"];
 
 const ALL_LEVEL_IDS: LevelId[] = [
   "basic",
@@ -39,6 +39,7 @@ export type QuizScoreEntry = {
 export type StoredSettings = PlaybackSettings & {
   quizScores: Record<string, QuizScoreEntry>;
   selectedLevel?: LevelId;
+  selectedMomLevel?: string;
 };
 
 export const PLAYBACK_DEFAULTS: PlaybackSettings = {
@@ -174,12 +175,26 @@ export function loadSelectedLevel(): LevelId | null {
 
 export function saveSelectedLevel(level: LevelId | null) {
   if (level === null) {
-    const { selectedLevel: _, ...rest } = load();
+    const { selectedLevel: _, selectedMomLevel: __, ...rest } = load();
     if (typeof window === "undefined") return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(rest));
     return;
   }
   write({ selectedLevel: level });
+}
+
+export function loadSelectedMomLevel(): string | null {
+  return load().selectedMomLevel ?? null;
+}
+
+export function saveSelectedMomLevel(momLevel: string | null) {
+  if (momLevel === null) {
+    const { selectedMomLevel: _, ...rest } = load();
+    if (typeof window === "undefined") return;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(rest));
+    return;
+  }
+  write({ selectedMomLevel: momLevel });
 }
 
 export function saveQuizScore(score: number, total: number) {

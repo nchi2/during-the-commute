@@ -22,6 +22,7 @@ const C = {
 
 type Props = {
   onBack: () => void;
+  hideExampleSettings?: boolean;
 };
 
 function Segmented<T extends string | number>({
@@ -92,7 +93,10 @@ function SettingCard({
   );
 }
 
-export default function SettingsScreen({ onBack }: Props) {
+export default function SettingsScreen({
+  onBack,
+  hideExampleSettings = false,
+}: Props) {
   const [settings, setSettings] = useState<PlaybackSettings | null>(null);
 
   useEffect(() => {
@@ -183,6 +187,7 @@ export default function SettingsScreen({ onBack }: Props) {
           />
         </SettingCard>
 
+        {!hideExampleSettings && (
         <SettingCard
           title="예문 반복 횟수"
           desc="영어 예문도 단어와 별도로 반복 횟수를 지정합니다."
@@ -197,10 +202,15 @@ export default function SettingsScreen({ onBack }: Props) {
             onChange={(v) => patch({ exampleRepeatCount: v })}
           />
         </SettingCard>
+        )}
 
         <SettingCard
           title="따라하기 텀"
-          desc="영어 단어·예문을 듣은 뒤 따라 말할 여유 시간입니다."
+          desc={
+            hideExampleSettings
+              ? "영어 문장을 듣은 뒤 따라 말할 여유 시간입니다."
+              : "영어 단어·예문을 듣은 뒤 따라 말할 여유 시간입니다."
+          }
         >
           <div
             style={{
@@ -237,7 +247,11 @@ export default function SettingsScreen({ onBack }: Props) {
 
         <SettingCard
           title="세트 사이 간격"
-          desc="같은 단어·예문을 반복할 때, 한 세트(영어→텀→뜻)가 끝난 뒤 다음 세트 전 무음 간격입니다."
+          desc={
+            hideExampleSettings
+              ? "같은 문장을 반복할 때, 한 세트(영어→텀→뜻)가 끝난 뒤 다음 세트 전 무음 간격입니다."
+              : "같은 단어·예문을 반복할 때, 한 세트(영어→텀→뜻)가 끝난 뒤 다음 세트 전 무음 간격입니다."
+          }
         >
           <div
             style={{

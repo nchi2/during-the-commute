@@ -2,13 +2,13 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "오늘의 단어",
-  description: "매일 영어 단어 학습 & 퀴즈",
+  title: "출퇴근 영어",
+  description: "출퇴근 영어 학습 & 퀴즈",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "오늘의 단어",
+    title: "출퇴근 영어",
   },
   icons: {
     icon: "/icons/icon-192.png",
@@ -39,7 +39,7 @@ export default function RootLayout({
           name="apple-mobile-web-app-status-bar-style"
           content="black-translucent"
         />
-        <meta name="apple-mobile-web-app-title" content="오늘의 단어" />
+        <meta name="apple-mobile-web-app-title" content="출퇴근 영어" />
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
       </head>
       <body style={{ height: "100%" }}>{children}</body>

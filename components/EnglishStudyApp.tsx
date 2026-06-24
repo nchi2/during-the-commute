@@ -29,8 +29,10 @@ import type { LucideIcon } from "lucide-react";
 import {
   loadPlaybackSettings,
   loadSelectedLevel,
+  loadSelectedMomLevel,
   saveQuizScore,
   saveSelectedLevel,
+  saveSelectedMomLevel,
 } from "@/lib/storage";
 import type { LevelId } from "@/lib/storage";
 import {
@@ -38,6 +40,9 @@ import {
   preloadWordAudio,
   preloadWordSequence,
   reclaimAudioSession,
+  setAudioSubdirForLevel,
+  setAudioSubdirForMomLevel,
+  skipsExamplePhase,
   speakEnglishExample,
   speakEnglishExampleNow,
   speakEnglishWord,
@@ -56,6 +61,14 @@ import {
   updateStudyMediaMetadata,
 } from "@/lib/media-session";
 import { GROUPS } from "@/data/groups.mjs";
+import {
+  getMomLevel,
+  getMomLevels,
+  getMomStudyItems,
+  isSimpleListenLevel,
+  MOM_LEVEL01_WORD_COUNT,
+  type MomLevelId,
+} from "@/lib/word-data";
 import { getWordCatalog, resolveWordIds } from "@/lib/playlists";
 import type { WordId } from "@/lib/playlists";
 import { useHiddenWords } from "@/hooks/useHiddenWords";
@@ -97,6 +110,7 @@ const POS_COLOR: Record<string, string> = {
   명사: "#7CA8E0",
   형용사: "#5BBF8E",
   부사: "#C98BD0",
+  문장: "#7CA8E0",
 };
 
 function posColor(pos: string): string {
@@ -154,9 +168,8 @@ const LEVEL_CATEGORIES: LevelCategory[] = [
       {
         id: "eomuni",
         label: "어무니",
-        desc: "문장 듣고 영작",
-        active: false,
-        inactiveToast: "문장 듣고 영작 모드는 준비 중입니다",
+        desc: `문장노트 · ${MOM_LEVEL01_WORD_COUNT}문장~`,
+        active: true,
       },
     ],
   },
@@ -193,6 +206,8 @@ export default function EnglishStudyApp() {
   const [level, setLevel] = useState<LevelId | null>(null);
   const [levelReady, setLevelReady] = useState(false);
   const [levelToast, setLevelToast] = useState<string | null>(null);
+  const [momLevel, setMomLevel] = useState<MomLevelId | null>(null);
+  const [momToast, setMomToast] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("study");
   const [selected, setSelected] = useState<Set<WordId>>(new Set());
   const [started, setStarted] = useState(false);
@@ -237,9 +252,29 @@ export default function EnglishStudyApp() {
 
   useEffect(() => {
     const saved = loadSelectedLevel();
-    if (saved) setLevel(saved);
+    if (saved) {
+      setLevel(saved);
+      if (saved === "eomuni") {
+        const savedMom = loadSelectedMomLevel();
+        const entry = savedMom ? getMomLevel(savedMom) : undefined;
+        if (savedMom && entry?.active) {
+          setMomLevel(savedMom as MomLevelId);
+          setAudioSubdirForMomLevel(savedMom);
+        }
+      } else {
+        setAudioSubdirForLevel(saved);
+      }
+    }
     setLevelReady(true);
   }, []);
+
+  useEffect(() => {
+    if (level === "eomuni" && momLevel) {
+      setAudioSubdirForMomLevel(momLevel);
+    } else if (level && level !== "eomuni") {
+      setAudioSubdirForLevel(level);
+    }
+  }, [level, momLevel]);
 
   const handleSelectLevel = (id: LevelId, active: boolean) => {
     if (!active) {
@@ -251,6 +286,37 @@ export default function EnglishStudyApp() {
     cancelPlayback();
     setLevel(id);
     saveSelectedLevel(id);
+    setTab("study");
+    setPlaylistSession(null);
+    if (id === "eomuni") {
+      setMomLevel(null);
+      saveSelectedMomLevel(null);
+      setSelected(new Set());
+    } else {
+      setMomLevel(null);
+      saveSelectedMomLevel(null);
+      setStarted(false);
+      setSelected(new Set());
+      setAudioSubdirForLevel(id);
+    }
+  };
+
+  const handleSelectMomLevel = (id: MomLevelId, active: boolean) => {
+    if (!active) {
+      setMomToast("준비 중입니다");
+      setTimeout(() => setMomToast(null), 2500);
+      return;
+    }
+    cancelPlayback();
+    setMomLevel(id);
+    saveSelectedMomLevel(id);
+    setAudioSubdirForMomLevel(id);
+  };
+
+  const handleMomLevelBack = () => {
+    cancelPlayback();
+    setMomLevel(null);
+    saveSelectedMomLevel(null);
   };
 
   const handleChangeLevel = () => {
@@ -260,6 +326,8 @@ export default function EnglishStudyApp() {
     setTab("study");
     setStarted(false);
     setSelected(new Set());
+    setMomLevel(null);
+    saveSelectedMomLevel(null);
     setLevel(null);
     saveSelectedLevel(null);
     setPlaylistSession(null);
@@ -273,11 +341,18 @@ export default function EnglishStudyApp() {
     setTab("study");
     setStarted(false);
     setSelected(new Set());
+    setMomLevel(null);
+    saveSelectedMomLevel(null);
     setLevel(null);
     saveSelectedLevel(null);
     setPlaylistSession(null);
     setPlaylistReset((n) => n + 1);
   };
+
+  const momItems = useMemo(() => {
+    if (!momLevel) return [];
+    return getMomStudyItems(momLevel);
+  }, [momLevel]);
 
   const items = useMemo(() => {
     const ids = getWordCatalog()
@@ -302,6 +377,8 @@ export default function EnglishStudyApp() {
       <LevelSelectScreen toast={levelToast} onSelect={handleSelectLevel} />
     );
   }
+
+  const isMomMode = isSimpleListenLevel(level);
 
   return (
     <div
@@ -352,7 +429,7 @@ export default function EnglishStudyApp() {
           >
             <Image
               src="/logos/logo_commute.png"
-              alt="오늘의 단어"
+              alt="출퇴근 영어"
               width={36}
               height={36}
               style={{ display: "block", borderRadius: 8, flexShrink: 0 }}
@@ -365,7 +442,7 @@ export default function EnglishStudyApp() {
                   letterSpacing: "-0.02em",
                 }}
               >
-                오늘의 단어
+                출퇴근 영어
               </span>
               <span
                 style={{
@@ -374,7 +451,7 @@ export default function EnglishStudyApp() {
                   fontFamily: "ui-monospace, monospace",
                 }}
               >
-                daily reps
+                commute english
               </span>
             </div>
           </button>
@@ -398,6 +475,12 @@ export default function EnglishStudyApp() {
               }}
             >
               {LEVEL_LABEL[level]}
+              {isMomMode && momLevel && (
+                <span style={{ color: C.muted, fontWeight: 500 }}>
+                  {" "}
+                  · {getMomLevel(momLevel)?.label}
+                </span>
+              )}
             </span>
             <div style={{ display: "flex", gap: 6 }}>
               <button
@@ -429,11 +512,11 @@ export default function EnglishStudyApp() {
                   cursor: "pointer",
                 }}
               >
-                단어장 변경
+                {isMomMode ? "문장노트 변경" : "단어장 변경"}
               </button>
             </div>
           </div>
-          {!showSettings && (
+          {!showSettings && !isMomMode && (
             <div style={{ display: "flex", gap: 6, marginTop: 14 }}>
               {(
                 [
@@ -482,7 +565,24 @@ export default function EnglishStudyApp() {
           }}
         >
         {showSettings ? (
-          <SettingsScreen onBack={closeSettings} />
+          <SettingsScreen
+            onBack={closeSettings}
+            hideExampleSettings={isMomMode}
+          />
+        ) : isMomMode ? (
+          momLevel ? (
+            <StudyView
+              items={momItems}
+              onBack={handleMomLevelBack}
+              backLabel="레벨"
+            />
+          ) : (
+            <MomLevelSelectScreen
+              toast={momToast}
+              onSelect={handleSelectMomLevel}
+              onBack={handleChangeLevel}
+            />
+          )
         ) : (
           <>
             {playlistSession?.mode === "study" && (
@@ -626,7 +726,7 @@ function LevelSelectScreen({
         >
           <Image
             src="/logos/logo_commute.png"
-            alt="오늘의 단어"
+            alt="출퇴근 영어"
             width={56}
             height={56}
             style={{ display: "block", borderRadius: 12, marginBottom: 14 }}
@@ -743,6 +843,138 @@ function LevelSelectScreen({
         )}
       </div>
       </div>
+    </div>
+  );
+}
+
+function MomLevelSelectScreen({
+  toast,
+  onSelect,
+  onBack,
+}: {
+  toast: string | null;
+  onSelect: (id: MomLevelId, active: boolean) => void;
+  onBack: () => void;
+}) {
+  const levels = getMomLevels();
+
+  return (
+    <div
+      style={{
+        flex: 1,
+        minHeight: 0,
+        overflowY: "auto",
+        WebkitOverflowScrolling: "touch",
+        padding: "20px 20px 32px",
+      }}
+    >
+      <button
+        type="button"
+        onClick={onBack}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
+          background: "none",
+          border: "none",
+          color: C.muted,
+          cursor: "pointer",
+          fontSize: 14,
+          marginBottom: 20,
+          padding: 0,
+        }}
+      >
+        <ChevronLeft size={18} /> 문장노트 선택
+      </button>
+
+      <h2
+        style={{
+          margin: "0 0 6px",
+          fontSize: 22,
+          fontWeight: 800,
+        }}
+      >
+        어무니 문장노트
+      </h2>
+      <p style={{ margin: "0 0 20px", fontSize: 14, color: C.muted }}>
+        레벨을 골라 문장을 들어보세요
+      </p>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {levels.map((entry) => {
+          const count = entry.groups.reduce((n, g) => n + g.words.length, 0);
+          const desc = entry.active
+            ? `${entry.desc} · ${count}문장`
+            : entry.desc;
+          return (
+            <button
+              key={entry.id}
+              type="button"
+              onClick={() => onSelect(entry.id as MomLevelId, entry.active)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+                textAlign: "left",
+                padding: "15px 16px",
+                borderRadius: 12,
+                cursor: entry.active ? "pointer" : "not-allowed",
+                background: entry.active ? C.elevated : C.card,
+                border: `1px solid ${entry.active ? C.gold : C.border}`,
+                color: entry.active ? C.text : C.muted,
+                opacity: entry.active ? 1 : 0.55,
+                width: "100%",
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 17, fontWeight: 700 }}>{entry.label}</div>
+                <div
+                  style={{
+                    fontSize: 13,
+                    color: C.muted,
+                    marginTop: 4,
+                  }}
+                >
+                  {desc}
+                </div>
+              </div>
+              {!entry.active && (
+                <span
+                  style={{
+                    flexShrink: 0,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: C.muted,
+                    border: `1px solid ${C.border}`,
+                    padding: "3px 8px",
+                    borderRadius: 6,
+                  }}
+                >
+                  준비 중
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {toast && (
+        <div
+          style={{
+            marginTop: 16,
+            textAlign: "center",
+            fontSize: 14,
+            color: C.gold,
+            padding: "10px 14px",
+            borderRadius: 10,
+            background: C.elevated,
+            border: `1px solid ${C.goldDim}`,
+          }}
+        >
+          {toast}
+        </div>
+      )}
     </div>
   );
 }
@@ -1253,9 +1485,11 @@ function GroupPicker({
 function StudyView({
   items,
   onBack,
+  backLabel = "목록",
 }: {
   items: StudyItem[];
   onBack: () => void;
+  backLabel?: string;
 }) {
   const [index, setIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -1267,6 +1501,7 @@ function StudyView({
   const indexRef = useRef(0);
   const itemsRef = useRef(items);
   const cur = items[index];
+  const skipExample = skipsExamplePhase();
 
   indexRef.current = index;
   itemsRef.current = items;
@@ -1284,7 +1519,7 @@ function StudyView({
     const phaseLabel = phase === "word" ? "단어" : "예문";
     updateStudyMediaMetadata({
       title: cur.word,
-      artist: showKo ? cur.mean : "오늘의 단어",
+      artist: showKo ? cur.mean : "출퇴근 영어",
       album: `${cur.concept} · ${index + 1}/${items.length} · ${phaseLabel}`,
     });
     updateMediaPositionState({
@@ -1345,20 +1580,22 @@ function StudyView({
       }
     }
 
-    if (!playingRef.current) return false;
-    setPhase("example");
+    if (!skipExample) {
+      if (!playingRef.current) return false;
+      setPhase("example");
 
-    for (let r = 0; r < settings.exampleRepeatCount; r++) {
-      if (!playingRef.current) return false;
-      preloadWordSequence(w.word, "ex");
-      await speakEnglishExample(w.word, w.ex);
-      if (!playingRef.current) return false;
-      await wait(settings.gapSec * 1000);
-      preloadWordSequence(w.word, "exko");
-      await speakKoreanExKo(w.word, w.exKo);
-      if (r < settings.exampleRepeatCount - 1) {
+      for (let r = 0; r < settings.exampleRepeatCount; r++) {
         if (!playingRef.current) return false;
-        await wait(settings.setGapSec * 1000);
+        preloadWordSequence(w.word, "ex");
+        await speakEnglishExample(w.word, w.ex);
+        if (!playingRef.current) return false;
+        await wait(settings.gapSec * 1000);
+        preloadWordSequence(w.word, "exko");
+        await speakKoreanExKo(w.word, w.exKo);
+        if (r < settings.exampleRepeatCount - 1) {
+          if (!playingRef.current) return false;
+          await wait(settings.setGapSec * 1000);
+        }
       }
     }
 
@@ -1524,7 +1761,7 @@ function StudyView({
             fontSize: 14,
           }}
         >
-          <ChevronLeft size={18} /> 목록
+          <ChevronLeft size={18} /> {backLabel}
         </button>
         <span
           style={{
@@ -1622,10 +1859,11 @@ function StudyView({
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <span
               style={{
-                fontSize: 40,
+                fontSize: skipExample ? 28 : 40,
                 fontWeight: 800,
                 letterSpacing: "-0.02em",
                 color: phase === "word" && isPlaying ? C.gold : C.text,
+                lineHeight: 1.25,
               }}
             >
               {cur.word}
@@ -1634,11 +1872,21 @@ function StudyView({
           </div>
         </button>
         {showKo && (
-          <div style={{ fontSize: 17, color: C.muted, marginTop: 6 }}>
+          <div
+            style={{
+              fontSize: skipExample ? 26 : 17,
+              fontWeight: skipExample ? 600 : 400,
+              color: skipExample ? C.text : C.muted,
+              marginTop: skipExample ? 18 : 6,
+              lineHeight: 1.45,
+            }}
+          >
             {cur.mean}
           </div>
         )}
 
+        {!skipExample && (
+          <>
         <div
           style={{ height: 1, background: C.border, margin: "22px 0 18px" }}
         />
@@ -1674,6 +1922,8 @@ function StudyView({
           >
             {cur.exKo}
           </div>
+        )}
+          </>
         )}
       </div>
 
@@ -1731,8 +1981,10 @@ function StudyView({
           gap: 5,
         }}
       >
-        <Repeat size={13} /> (단어→텀→뜻)×{playback.wordRepeatCount} →
-        (예문→텀→예문뜻)×{playback.exampleRepeatCount}
+        <Repeat size={13} />{" "}
+        {skipExample
+          ? `(영어→텀→뜻)×${playback.wordRepeatCount}`
+          : `(단어→텀→뜻)×${playback.wordRepeatCount} → (예문→텀→예문뜻)×${playback.exampleRepeatCount}`}
       </div>
 
       {index === items.length - 1 &&

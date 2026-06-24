@@ -80,8 +80,8 @@ export function updateStudyMediaMetadata(meta: StudyMediaMetadata): void {
   try {
     navigator.mediaSession.metadata = new MediaMetadata({
       title: meta.title,
-      artist: meta.artist ?? "오늘의 단어",
-      album: meta.album ?? "단어 학습",
+      artist: meta.artist ?? "출퇴근 영어",
+      album: meta.album ?? "출퇴근 영어",
       artwork: ARTWORK,
     });
   } catch {
