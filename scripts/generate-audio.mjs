@@ -24,7 +24,7 @@ import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { GROUPS } from "../data/groups.mjs";
 import { MOM_LEVELS } from "../data/groups.mom.mjs";
-import { sanitizeAudioFilename } from "../lib/audio-filename.mjs";
+import { audioFileBase } from "../lib/audio-filename.mjs";
 import { getAudioSubdirForDataset } from "../lib/audio-paths.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -126,8 +126,8 @@ function copyMp3(srcFilename, destFilename, wordLabel) {
   console.log(`✓ ${destFilename} ← ${srcFilename} 복사됨`);
 }
 
-async function generateMomWord({ word, mean }, apiKey, { includeEnglish }) {
-  const base = sanitizeAudioFilename(word);
+async function generateMomWord({ word, mean, pos }, apiKey, { includeEnglish }) {
+  const base = audioFileBase(word, pos);
 
   if (includeEnglish) {
     await saveMp3(word, `${base}.mp3`, word, apiKey, voices.en, "en");
@@ -136,8 +136,8 @@ async function generateMomWord({ word, mean }, apiKey, { includeEnglish }) {
   await saveMp3(mean, `${base}-ko.mp3`, word, apiKey, voices.ko, "ko");
 }
 
-async function generateDefaultWord({ word, ex, mean, exKo }, apiKey, { includeEnglish }) {
-  const base = sanitizeAudioFilename(word);
+async function generateDefaultWord({ word, ex, mean, exKo, pos }, apiKey, { includeEnglish }) {
+  const base = audioFileBase(word, pos);
 
   if (includeEnglish) {
     await saveMp3(word, `${base}.mp3`, word, apiKey, voices.en, "en");

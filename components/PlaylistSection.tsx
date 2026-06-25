@@ -163,25 +163,35 @@ export default function PlaylistSection({
       return null;
     }
     return (
-      <PlaylistEdit
-        playlist={pl}
-        onBack={() => {
-          refresh();
-          setScreen({ type: "list" });
+      <div
+        style={{
+          flex: 1,
+          minHeight: 0,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
         }}
-        onRemove={(wordId) => {
-          removeWordId(pl.id, wordId);
-          refresh();
-        }}
-        onAddWords={() => {
-          setPickIds(new Set());
-          setScreen({ type: "pick", mode: "append", appendId: pl.id });
-        }}
-        onRename={(name) => {
-          updatePlaylist(pl.id, { name });
-          refresh();
-        }}
-      />
+      >
+        <PlaylistEdit
+          playlist={pl}
+          onBack={() => {
+            refresh();
+            setScreen({ type: "list" });
+          }}
+          onRemove={(wordId) => {
+            removeWordId(pl.id, wordId);
+            refresh();
+          }}
+          onAddWords={() => {
+            setPickIds(new Set());
+            setScreen({ type: "pick", mode: "append", appendId: pl.id });
+          }}
+          onRename={(name) => {
+            updatePlaylist(pl.id, { name });
+            refresh();
+          }}
+        />
+      </div>
     );
   }
 
@@ -386,115 +396,141 @@ function PlaylistEdit({
     .filter((w): w is CatalogWord => !!w);
 
   return (
-    <div style={{ padding: "14px 20px 40px" }}>
-      <button
-        onClick={onBack}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 4,
-          background: "none",
-          border: "none",
-          color: C.muted,
-          cursor: "pointer",
-          fontSize: 14,
-          marginBottom: 12,
-          padding: 0,
-        }}
-      >
-        <ChevronLeft size={18} /> 목록
-      </button>
+    <div
+      style={{
+        flex: 1,
+        minHeight: 0,
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+      }}
+    >
       <div
         style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 14,
+          flexShrink: 0,
+          padding: "14px 20px 12px",
+          background: C.bg,
+          borderBottom: `1px solid ${C.border}`,
         }}
       >
-        <div>
-          <div style={{ fontSize: 20, fontWeight: 800 }}>{playlist.name}</div>
-          <div style={{ fontSize: 13, color: C.muted, marginTop: 4 }}>
-            {words.length}개 단어
+        <button
+          onClick={onBack}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            background: "none",
+            border: "none",
+            color: C.muted,
+            cursor: "pointer",
+            fontSize: 14,
+            marginBottom: 12,
+            padding: 0,
+          }}
+        >
+          <ChevronLeft size={18} /> 목록
+        </button>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 12,
+          }}
+        >
+          <div>
+            <div style={{ fontSize: 20, fontWeight: 800 }}>{playlist.name}</div>
+            <div style={{ fontSize: 13, color: C.muted, marginTop: 4 }}>
+              {words.length}개 단어
+            </div>
           </div>
+          <button
+            onClick={() => {
+              const name = window.prompt("플레이리스트 이름", playlist.name);
+              if (name?.trim()) onRename(name.trim());
+            }}
+            style={{
+              background: "none",
+              border: `1px solid ${C.border}`,
+              color: C.muted,
+              padding: "5px 10px",
+              borderRadius: 8,
+              fontSize: 12,
+              cursor: "pointer",
+            }}
+          >
+            이름 변경
+          </button>
         </div>
         <button
-          onClick={() => {
-            const name = window.prompt("플레이리스트 이름", playlist.name);
-            if (name?.trim()) onRename(name.trim());
-          }}
+          onClick={onAddWords}
           style={{
-            background: "none",
-            border: `1px solid ${C.border}`,
-            color: C.muted,
-            padding: "5px 10px",
-            borderRadius: 8,
-            fontSize: 12,
+            width: "100%",
+            padding: "11px 0",
+            borderRadius: 10,
+            border: `1px dashed ${C.gold}`,
+            background: "transparent",
+            color: C.gold,
+            fontWeight: 700,
+            fontSize: 14,
             cursor: "pointer",
           }}
         >
-          이름 변경
+          + 단어 추가
         </button>
       </div>
-      <button
-        onClick={onAddWords}
+      <div
         style={{
-          width: "100%",
-          marginBottom: 12,
-          padding: "11px 0",
-          borderRadius: 10,
-          border: `1px dashed ${C.gold}`,
-          background: "transparent",
-          color: C.gold,
-          fontWeight: 700,
-          fontSize: 14,
-          cursor: "pointer",
+          flex: 1,
+          minHeight: 0,
+          overflowY: "auto",
+          WebkitOverflowScrolling: "touch",
+          padding: "12px 20px 40px",
         }}
       >
-        + 단어 추가
-      </button>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {words.length === 0 ? (
-          <div style={{ textAlign: "center", color: C.muted, padding: 24 }}>
-            단어가 없어요. 추가해 보세요.
-          </div>
-        ) : (
-          words.map((w) => (
-            <div
-              key={w.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                padding: "12px 14px",
-                borderRadius: 12,
-                background: C.card,
-                border: `1px solid ${C.border}`,
-              }}
-            >
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 16, fontWeight: 700 }}>{w.word}</div>
-                <div style={{ fontSize: 14, color: C.muted, marginTop: 2 }}>
-                  {w.mean}
-                </div>
-              </div>
-              <button
-                onClick={() => onRemove(w.id)}
-                style={{
-                  background: "none",
-                  border: `1px solid ${C.border}`,
-                  borderRadius: 8,
-                  padding: "6px 8px",
-                  cursor: "pointer",
-                  color: C.muted,
-                }}
-                aria-label="단어 제거"
-              >
-                <XIcon />
-              </button>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {words.length === 0 ? (
+            <div style={{ textAlign: "center", color: C.muted, padding: 24 }}>
+              단어가 없어요. 추가해 보세요.
             </div>
-          ))
-        )}
+          ) : (
+            words.map((w) => (
+              <div
+                key={w.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "12px 14px",
+                  borderRadius: 12,
+                  background: C.card,
+                  border: `1px solid ${C.border}`,
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 16, fontWeight: 700 }}>{w.word}</div>
+                  <div style={{ fontSize: 14, color: C.muted, marginTop: 2 }}>
+                    {w.mean}
+                  </div>
+                </div>
+                <button
+                  onClick={() => onRemove(w.id)}
+                  style={{
+                    background: "none",
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 8,
+                    padding: "6px 8px",
+                    cursor: "pointer",
+                    color: C.muted,
+                  }}
+                  aria-label="단어 제거"
+                >
+                  <XIcon />
+                </button>
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );
@@ -637,221 +673,253 @@ function WordPicker({
   });
 
   return (
-    <>
+    <div
+      style={{
+        flex: 1,
+        minHeight: 0,
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+      }}
+    >
       {showHidden ? (
-        <HiddenWordsPanel
-          hiddenIds={hiddenIds}
-          onBack={() => setShowHidden(false)}
-          onRestore={onRestoreWord}
-          onRestoreAll={onRestoreAllHidden}
-        />
-      ) : (
-      <div
-        style={{
-          padding: "14px 20px",
-          paddingBottom: "calc(120px + env(safe-area-inset-bottom, 0px))",
-        }}
-      >
-        <button
-          onClick={onBack}
+        <div
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 4,
-            background: "none",
-            border: "none",
-            color: C.muted,
-            cursor: "pointer",
-            fontSize: 14,
-            marginBottom: 12,
-            padding: 0,
+            flex: 1,
+            minHeight: 0,
+            overflowY: "auto",
+            WebkitOverflowScrolling: "touch",
           }}
         >
-          <ChevronLeft size={18} />{" "}
-          {mode === "append" ? "수정으로 돌아가기" : "목록"}
-        </button>
-
-        <div style={{ position: "relative", marginBottom: 12 }}>
-          <Search
-            size={16}
-            color={C.muted}
-            style={{
-              position: "absolute",
-              left: 12,
-              top: "50%",
-              transform: "translateY(-50%)",
-              pointerEvents: "none",
-            }}
-          />
-          <input
-            type="search"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="단어·뜻 검색"
-            style={{
-              width: "100%",
-              boxSizing: "border-box",
-              padding: "11px 12px 11px 36px",
-              borderRadius: 10,
-              border: `1px solid ${C.border}`,
-              background: C.card,
-              color: C.text,
-              fontSize: 15,
-              outline: "none",
-            }}
+          <HiddenWordsPanel
+            hiddenIds={hiddenIds}
+            onBack={() => setShowHidden(false)}
+            onRestore={onRestoreWord}
+            onRestoreAll={onRestoreAllHidden}
           />
         </div>
-
-        <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
-          {(["default", "az"] as const).map((id) => (
+      ) : (
+        <>
+          <div
+            style={{
+              flexShrink: 0,
+              padding: "14px 20px 12px",
+              background: C.bg,
+              borderBottom: `1px solid ${C.border}`,
+            }}
+          >
             <button
-              key={id}
-              onClick={() => setSortMode(id)}
+              onClick={onBack}
               style={{
-                flex: 1,
-                padding: "8px 0",
-                borderRadius: 8,
-                border: `1px solid ${sortMode === id ? C.gold : C.border}`,
-                background: sortMode === id ? C.elevated : C.card,
-                color: sortMode === id ? C.gold : C.muted,
-                fontWeight: sortMode === id ? 700 : 500,
-                fontSize: 13,
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                background: "none",
+                border: "none",
+                color: C.muted,
                 cursor: "pointer",
+                fontSize: 14,
+                marginBottom: 12,
+                padding: 0,
               }}
             >
-              {id === "default" ? "기본순" : "A-Z"}
+              <ChevronLeft size={18} />{" "}
+              {mode === "append" ? "수정으로 돌아가기" : "목록"}
             </button>
-          ))}
-        </div>
 
-        {hiddenCount > 0 ? (
-          <button
-            type="button"
-            onClick={() => setShowHidden(true)}
+            <div style={{ position: "relative" }}>
+              <Search
+                size={16}
+                color={C.muted}
+                style={{
+                  position: "absolute",
+                  left: 12,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  pointerEvents: "none",
+                }}
+              />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="단어·뜻 검색"
+                style={{
+                  width: "100%",
+                  boxSizing: "border-box",
+                  padding: "11px 12px 11px 36px",
+                  borderRadius: 10,
+                  border: `1px solid ${C.border}`,
+                  background: C.card,
+                  color: C.text,
+                  fontSize: 15,
+                  outline: "none",
+                }}
+              />
+            </div>
+          </div>
+
+          <div
             style={{
-              display: "block",
-              width: "100%",
-              marginBottom: 12,
-              padding: "9px 12px",
-              borderRadius: 8,
-              border: `1px solid ${C.border}`,
-              background: C.card,
-              color: C.gold,
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: "pointer",
-              textAlign: "left",
+              flex: 1,
+              minHeight: 0,
+              overflowY: "auto",
+              WebkitOverflowScrolling: "touch",
+              padding: "12px 20px",
+              paddingBottom: "calc(120px + env(safe-area-inset-bottom, 0px))",
             }}
           >
-            {`숨김 ${hiddenCount}개 보기`}
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setShowHidden(true)}
-            style={{
-              display: "block",
-              width: "100%",
-              marginBottom: 8,
-              padding: "4px 0",
-              border: "none",
-              background: "transparent",
-              color: C.muted,
-              fontSize: 12,
-              fontWeight: 400,
-              opacity: 0.45,
-              cursor: "pointer",
-              textAlign: "left",
-            }}
-          >
-            숨긴 단어 보기
-          </button>
-        )}
+            <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+              {(["default", "az"] as const).map((id) => (
+                <button
+                  key={id}
+                  onClick={() => setSortMode(id)}
+                  style={{
+                    flex: 1,
+                    padding: "8px 0",
+                    borderRadius: 8,
+                    border: `1px solid ${sortMode === id ? C.gold : C.border}`,
+                    background: sortMode === id ? C.elevated : C.card,
+                    color: sortMode === id ? C.gold : C.muted,
+                    fontWeight: sortMode === id ? 700 : 500,
+                    fontSize: 13,
+                    cursor: "pointer",
+                  }}
+                >
+                  {id === "default" ? "기본순" : "A-Z"}
+                </button>
+              ))}
+            </div>
 
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 12,
-          }}
-        >
-          <span style={{ fontSize: 13, color: C.muted }}>
-            {selected.size}개 선택 · {displayedWords.length}개 표시
-          </span>
-          <button
-            onClick={toggleAllVisible}
-            style={{
-              background: "none",
-              border: `1px solid ${C.border}`,
-              color: C.muted,
-              padding: "5px 10px",
-              borderRadius: 8,
-              fontSize: 12,
-              cursor: "pointer",
-            }}
-          >
-            보이는 항목 전체
-          </button>
-        </div>
-
-        <div
-          key={query || `sort-${sortMode}`}
-          style={{ display: "flex", flexDirection: "column", gap: 8 }}
-        >
-          {displayedWords.map((w) => {
-            const on = selected.has(w.id);
-            return (
-              <SwipeableWordRow
-                key={w.id}
-                onHide={() => handleHideWord(w.id, w.word)}
-                onClick={() => toggle(w.id)}
-                rowStyle={{
-                  padding: "13px 14px",
-                  borderRadius: 12,
-                  border: `1px solid ${on ? C.gold : C.border}`,
-                  background: on ? C.elevated : C.card,
+            {hiddenCount > 0 ? (
+              <button
+                type="button"
+                onClick={() => setShowHidden(true)}
+                style={{
+                  display: "block",
+                  width: "100%",
+                  marginBottom: 12,
+                  padding: "9px 12px",
+                  borderRadius: 8,
+                  border: `1px solid ${C.border}`,
+                  background: C.card,
+                  color: C.gold,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  textAlign: "left",
                 }}
               >
-                <div style={checkboxStyle(on)}>
-                  {on && <Check size={15} color="#1A1408" strokeWidth={3} />}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      flexWrap: "wrap",
+                {`숨김 ${hiddenCount}개 보기`}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowHidden(true)}
+                style={{
+                  display: "block",
+                  width: "100%",
+                  marginBottom: 8,
+                  padding: "4px 0",
+                  border: "none",
+                  background: "transparent",
+                  color: C.muted,
+                  fontSize: 12,
+                  fontWeight: 400,
+                  opacity: 0.45,
+                  cursor: "pointer",
+                  textAlign: "left",
+                }}
+              >
+                숨긴 단어 보기
+              </button>
+            )}
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 12,
+              }}
+            >
+              <span style={{ fontSize: 13, color: C.muted }}>
+                {selected.size}개 선택 · {displayedWords.length}개 표시
+              </span>
+              <button
+                onClick={toggleAllVisible}
+                style={{
+                  background: "none",
+                  border: `1px solid ${C.border}`,
+                  color: C.muted,
+                  padding: "5px 10px",
+                  borderRadius: 8,
+                  fontSize: 12,
+                  cursor: "pointer",
+                }}
+              >
+                보이는 항목 전체
+              </button>
+            </div>
+
+            <div
+              key={query || `sort-${sortMode}`}
+              style={{ display: "flex", flexDirection: "column", gap: 8 }}
+            >
+              {displayedWords.map((w) => {
+                const on = selected.has(w.id);
+                return (
+                  <SwipeableWordRow
+                    key={w.id}
+                    onHide={() => handleHideWord(w.id, w.word)}
+                    onClick={() => toggle(w.id)}
+                    rowStyle={{
+                      padding: "13px 14px",
+                      borderRadius: 12,
+                      border: `1px solid ${on ? C.gold : C.border}`,
+                      background: on ? C.elevated : C.card,
                     }}
                   >
-                    <span style={{ fontSize: 16, fontWeight: 700 }}>
-                      {w.word}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        color: posColor(w.pos),
-                        border: `1px solid ${posColor(w.pos)}`,
-                        padding: "1px 6px",
-                        borderRadius: 5,
-                      }}
-                    >
-                      {w.pos}
-                    </span>
-                  </div>
-                  <div
-                    style={{ fontSize: 14, color: C.muted, marginTop: 3 }}
-                  >
-                    {w.mean}
-                  </div>
-                </div>
-              </SwipeableWordRow>
-            );
-          })}
-        </div>
-      </div>
+                    <div style={checkboxStyle(on)}>
+                      {on && <Check size={15} color="#1A1408" strokeWidth={3} />}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <span style={{ fontSize: 16, fontWeight: 700 }}>
+                          {w.word}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: posColor(w.pos),
+                            border: `1px solid ${posColor(w.pos)}`,
+                            padding: "1px 6px",
+                            borderRadius: 5,
+                          }}
+                        >
+                          {w.pos}
+                        </span>
+                      </div>
+                      <div
+                        style={{ fontSize: 14, color: C.muted, marginTop: 3 }}
+                      >
+                        {w.mean}
+                      </div>
+                    </div>
+                  </SwipeableWordRow>
+                );
+              })}
+            </div>
+          </div>
+        </>
       )}
 
       {undo && (
@@ -1072,7 +1140,7 @@ function WordPicker({
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 }
 

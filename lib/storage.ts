@@ -10,6 +10,8 @@ export type LevelId =
 
 export type LoopMode = "stop" | "repeat";
 
+export type EnglishPlaybackRate = 0.8 | 1 | 1.25;
+
 export type PlaybackSettings = {
   gapSec: number;
   wordRepeatCount: number;
@@ -18,6 +20,7 @@ export type PlaybackSettings = {
   loopMode: LoopMode;
   itemGapEnabled: boolean;
   itemGapSec: number;
+  playbackRate: EnglishPlaybackRate;
 };
 
 const ACTIVE_LEVELS: LevelId[] = ["namjeonghyeon", "eomuni"];
@@ -50,7 +53,21 @@ export const PLAYBACK_DEFAULTS: PlaybackSettings = {
   loopMode: "stop",
   itemGapEnabled: true,
   itemGapSec: 0.7,
+  playbackRate: 1,
 };
+
+const ENGLISH_PLAYBACK_RATES: EnglishPlaybackRate[] = [0.8, 1, 1.25];
+
+function normalizeEnglishPlaybackRate(value: unknown): EnglishPlaybackRate {
+  if (value === 0.75) return 0.8;
+  if (
+    typeof value === "number" &&
+    (ENGLISH_PLAYBACK_RATES as number[]).includes(value)
+  ) {
+    return value as EnglishPlaybackRate;
+  }
+  return PLAYBACK_DEFAULTS.playbackRate;
+}
 
 function isLevelId(value: unknown): value is LevelId {
   return (
@@ -100,6 +117,7 @@ function normalizePlayback(raw: Partial<StoredSettings>): PlaybackSettings {
       typeof raw.itemGapSec === "number"
         ? clamp(raw.itemGapSec, 0.3, 1.5)
         : PLAYBACK_DEFAULTS.itemGapSec,
+    playbackRate: normalizeEnglishPlaybackRate(raw.playbackRate),
   };
 }
 
@@ -146,6 +164,7 @@ export function loadPlaybackSettings(): PlaybackSettings {
     loopMode,
     itemGapEnabled,
     itemGapSec,
+    playbackRate,
   } = load();
   return {
     gapSec,
@@ -155,6 +174,7 @@ export function loadPlaybackSettings(): PlaybackSettings {
     loopMode,
     itemGapEnabled,
     itemGapSec,
+    playbackRate,
   };
 }
 

@@ -1559,21 +1559,21 @@ function StudyView({
   const playItem = async (w: StudyItem, i: number): Promise<boolean> => {
     const settings = loadPlaybackSettings();
     const next = items[i + 1];
-    if (next) preloadWordAudio(next.word);
+    if (next) preloadWordAudio(next.word, next.pos);
 
     if (!playingRef.current) return false;
     setIndex(i);
     setPhase("word");
-    preloadWordAudio(w.word);
+    preloadWordAudio(w.word, w.pos);
 
     for (let r = 0; r < settings.wordRepeatCount; r++) {
       if (!playingRef.current) return false;
-      preloadWordSequence(w.word, "word");
-      await speakEnglishWord(w.word);
+      preloadWordSequence(w.word, "word", w.pos);
+      await speakEnglishWord(w.word, w.pos);
       if (!playingRef.current) return false;
       await wait(settings.gapSec * 1000);
-      preloadWordSequence(w.word, "mean");
-      await speakKoreanMean(w.word, w.mean);
+      preloadWordSequence(w.word, "mean", w.pos);
+      await speakKoreanMean(w.word, w.mean, w.pos);
       if (r < settings.wordRepeatCount - 1) {
         if (!playingRef.current) return false;
         await wait(settings.setGapSec * 1000);
@@ -1586,12 +1586,12 @@ function StudyView({
 
       for (let r = 0; r < settings.exampleRepeatCount; r++) {
         if (!playingRef.current) return false;
-        preloadWordSequence(w.word, "ex");
-        await speakEnglishExample(w.word, w.ex);
+        preloadWordSequence(w.word, "ex", w.pos);
+        await speakEnglishExample(w.word, w.ex, w.pos);
         if (!playingRef.current) return false;
         await wait(settings.gapSec * 1000);
-        preloadWordSequence(w.word, "exko");
-        await speakKoreanExKo(w.word, w.exKo);
+        preloadWordSequence(w.word, "exko", w.pos);
+        await speakKoreanExKo(w.word, w.exKo, w.pos);
         if (r < settings.exampleRepeatCount - 1) {
           if (!playingRef.current) return false;
           await wait(settings.setGapSec * 1000);
@@ -1667,7 +1667,7 @@ function StudyView({
     } else {
       stopAudioKeepAlive();
       setMediaPlaybackState("paused");
-      speakEnglishWordNow(itemsRef.current[ni].word);
+      speakEnglishWordNow(itemsRef.current[ni].word, itemsRef.current[ni].pos);
     }
   };
 
@@ -1724,7 +1724,7 @@ function StudyView({
     const ni = (i + items.length) % items.length;
     setIndex(ni);
     setPhase("word");
-    speakEnglishWordNow(items[ni].word);
+    speakEnglishWordNow(items[ni].word, items[ni].pos);
   };
 
   const progress = ((index + 1) / items.length) * 100;
@@ -1846,7 +1846,7 @@ function StudyView({
         </div>
 
         <button
-          onClick={() => speakEnglishWordNow(cur.word)}
+          onClick={() => speakEnglishWordNow(cur.word, cur.pos)}
           style={{
             background: "none",
             border: "none",
@@ -1892,7 +1892,7 @@ function StudyView({
         />
 
         <button
-          onClick={() => speakEnglishExampleNow(cur.word, cur.ex)}
+          onClick={() => speakEnglishExampleNow(cur.word, cur.ex, cur.pos)}
           style={{
             background: "none",
             border: "none",
@@ -2140,7 +2140,7 @@ function QuizView({
     if (picked) return;
     setPicked(opt);
     if (opt === q.mean) setScore((s) => s + 1);
-    speakEnglishWordNow(q.word);
+    speakEnglishWordNow(q.word, q.pos);
     setTimeout(() => {
       if (qi + 1 >= pool.length) setDone(true);
       else {

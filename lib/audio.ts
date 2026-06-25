@@ -1,4 +1,4 @@
-import { sanitizeAudioFilename } from "./audio-filename.mjs";
+import { audioFileBase, sanitizeAudioFilename } from "./audio-filename.mjs";
 import {
   DEFAULT_AUDIO_SUBDIR,
   exampleAudioUrl as buildExampleAudioUrl,
@@ -9,9 +9,10 @@ import {
   skipsExamplePhaseForAudioSubdir,
   wordAudioUrl as buildWordAudioUrl,
 } from "./audio-paths.mjs";
+import { loadPlaybackSettings } from "./storage";
 import type { LevelId } from "./storage";
 
-export { sanitizeAudioFilename };
+export { audioFileBase, sanitizeAudioFilename };
 
 let currentAudioSubdir = DEFAULT_AUDIO_SUBDIR;
 
@@ -35,26 +36,28 @@ export function skipsExamplePhase(): boolean {
   return skipsExamplePhaseForAudioSubdir(currentAudioSubdir);
 }
 
-export function wordAudioUrl(word: string): string {
-  return buildWordAudioUrl(currentAudioSubdir, word);
+export function wordAudioUrl(word: string, pos?: string): string {
+  return buildWordAudioUrl(currentAudioSubdir, word, pos);
 }
 
-export function exampleAudioUrl(word: string): string {
-  return buildExampleAudioUrl(currentAudioSubdir, word);
+export function exampleAudioUrl(word: string, pos?: string): string {
+  return buildExampleAudioUrl(currentAudioSubdir, word, pos);
 }
 
-export function meanAudioUrl(word: string): string {
-  return buildMeanAudioUrl(currentAudioSubdir, word);
+export function meanAudioUrl(word: string, pos?: string): string {
+  return buildMeanAudioUrl(currentAudioSubdir, word, pos);
 }
 
-export function exKoAudioUrl(word: string): string {
-  return buildExKoAudioUrl(currentAudioSubdir, word);
+export function exKoAudioUrl(word: string, pos?: string): string {
+  return buildExKoAudioUrl(currentAudioSubdir, word, pos);
 }
 
 let sharedAudio: HTMLAudioElement | null = null;
 let keepAliveAudio: HTMLAudioElement | null = null;
 let activeResolve: (() => void) | null = null;
-let onCanPlayHandler: (() => void) | null = null;
+let onReadyHandler: (() => void) | null = null;
+
+const AUDIO_READY_EVENT = "canplaythrough";
 let stopRequested = false;
 const preloaded = new Set<string>();
 
@@ -120,9 +123,9 @@ export function cancelPlayback(): void {
     audio.currentTime = 0;
     audio.onended = null;
     audio.onerror = null;
-    if (onCanPlayHandler) {
-      audio.removeEventListener("canplay", onCanPlayHandler);
-      onCanPlayHandler = null;
+    if (onReadyHandler) {
+      audio.removeEventListener(AUDIO_READY_EVENT, onReadyHandler);
+      onReadyHandler = null;
     }
   }
   if (activeResolve) {
@@ -138,7 +141,11 @@ export function stopStudyPlayback(): void {
   stopAudioKeepAlive();
 }
 
-function playMp3(url: string): Promise<boolean> {
+function getEnglishPlaybackRate(): number {
+  return loadPlaybackSettings().playbackRate;
+}
+
+function playMp3(url: string, playbackRate = 1): Promise<boolean> {
   return new Promise((resolve) => {
     stopRequested = false;
     const audio = getSharedAudio();
@@ -146,9 +153,9 @@ function playMp3(url: string): Promise<boolean> {
     const done = (ok: boolean) => {
       audio.onended = null;
       audio.onerror = null;
-      if (onCanPlayHandler) {
-        audio.removeEventListener("canplay", onCanPlayHandler);
-        onCanPlayHandler = null;
+      if (onReadyHandler) {
+        audio.removeEventListener(AUDIO_READY_EVENT, onReadyHandler);
+        onReadyHandler = null;
       }
       if (activeResolve === onCancel) activeResolve = null;
       resolve(ok);
@@ -162,6 +169,8 @@ function playMp3(url: string): Promise<boolean> {
         done(false);
         return;
       }
+      audio.currentTime = 0;
+      audio.playbackRate = playbackRate;
       audio.play().catch(() => done(false));
     };
 
@@ -171,14 +180,9 @@ function playMp3(url: string): Promise<boolean> {
     audio.pause();
     audio.currentTime = 0;
     audio.src = url;
+    onReadyHandler = startPlay;
+    audio.addEventListener(AUDIO_READY_EVENT, onReadyHandler, { once: true });
     audio.load();
-
-    if (audio.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
-      startPlay();
-    } else {
-      onCanPlayHandler = startPlay;
-      audio.addEventListener("canplay", onCanPlayHandler, { once: true });
-    }
   });
 }
 
@@ -211,55 +215,76 @@ async function playMp3OrTTS(
   url: string,
   fallbackText: string,
   lang: string,
+  playbackRate = 1,
 ): Promise<void> {
-  const ok = await playMp3(url);
+  const ok = await playMp3(url, playbackRate);
   if (stopRequested) return;
-  if (!ok) await speakOnceTTS(fallbackText, lang);
+  if (!ok) {
+    const ttsRate = lang.startsWith("en") ? 0.92 * playbackRate : 0.92;
+    await speakOnceTTS(fallbackText, lang, ttsRate);
+  }
 }
 
-export async function speakEnglishWord(word: string): Promise<void> {
-  await playMp3OrTTS(wordAudioUrl(word), word, "en-US");
+export async function speakEnglishWord(word: string, pos?: string): Promise<void> {
+  const rate = getEnglishPlaybackRate();
+  await playMp3OrTTS(wordAudioUrl(word, pos), word, "en-US", rate);
 }
 
 export async function speakEnglishExample(
   word: string,
   ex: string,
+  pos?: string,
 ): Promise<void> {
-  await playMp3OrTTS(exampleAudioUrl(word), ex, "en-US");
+  const rate = getEnglishPlaybackRate();
+  await playMp3OrTTS(exampleAudioUrl(word, pos), ex, "en-US", rate);
 }
 
 export async function speakKoreanMean(
   word: string,
   mean: string,
+  pos?: string,
 ): Promise<void> {
-  await playMp3OrTTS(meanAudioUrl(word), mean, "ko-KR");
+  await playMp3OrTTS(meanAudioUrl(word, pos), mean, "ko-KR", 1);
 }
 
 export async function speakKoreanExKo(
   word: string,
   exKo: string,
+  pos?: string,
 ): Promise<void> {
-  await playMp3OrTTS(exKoAudioUrl(word), exKo, "ko-KR");
+  await playMp3OrTTS(exKoAudioUrl(word, pos), exKo, "ko-KR", 1);
 }
 
-export function speakEnglishWordNow(word: string): void {
+export function speakEnglishWordNow(word: string, pos?: string): void {
   cancelPlayback();
-  void speakEnglishWord(word);
+  void speakEnglishWord(word, pos);
 }
 
-export function speakEnglishExampleNow(word: string, ex: string): void {
+export function speakEnglishExampleNow(
+  word: string,
+  ex: string,
+  pos?: string,
+): void {
   cancelPlayback();
-  void speakEnglishExample(word, ex);
+  void speakEnglishExample(word, ex, pos);
 }
 
-export function speakKoreanMeanNow(word: string, mean: string): void {
+export function speakKoreanMeanNow(
+  word: string,
+  mean: string,
+  pos?: string,
+): void {
   cancelPlayback();
-  void speakKoreanMean(word, mean);
+  void speakKoreanMean(word, mean, pos);
 }
 
-export function speakKoreanExKoNow(word: string, exKo: string): void {
+export function speakKoreanExKoNow(
+  word: string,
+  exKo: string,
+  pos?: string,
+): void {
   cancelPlayback();
-  void speakKoreanExKo(word, exKo);
+  void speakKoreanExKo(word, exKo, pos);
 }
 
 export function preloadAudioUrl(url: string): void {
@@ -271,10 +296,10 @@ export function preloadAudioUrl(url: string): void {
   audio.load();
 }
 
-export function preloadWordAudio(word: string): void {
-  const urls = [wordAudioUrl(word), meanAudioUrl(word)];
+export function preloadWordAudio(word: string, pos?: string): void {
+  const urls = [wordAudioUrl(word, pos), meanAudioUrl(word, pos)];
   if (!skipsExamplePhase()) {
-    urls.push(exampleAudioUrl(word), exKoAudioUrl(word));
+    urls.push(exampleAudioUrl(word, pos), exKoAudioUrl(word, pos));
   }
   for (const url of urls) {
     preloadAudioUrl(url);
@@ -285,18 +310,23 @@ export function preloadWordAudio(word: string): void {
 export function preloadWordSequence(
   word: string,
   step: "word" | "mean" | "ex" | "exko",
+  pos?: string,
 ): void {
   const steps: Record<typeof step, string[]> = skipsExamplePhase()
     ? {
-        word: [meanAudioUrl(word)],
+        word: [meanAudioUrl(word, pos)],
         mean: [],
         ex: [],
         exko: [],
       }
     : {
-        word: [meanAudioUrl(word), exampleAudioUrl(word), exKoAudioUrl(word)],
-        mean: [exampleAudioUrl(word), exKoAudioUrl(word)],
-        ex: [exKoAudioUrl(word)],
+        word: [
+          meanAudioUrl(word, pos),
+          exampleAudioUrl(word, pos),
+          exKoAudioUrl(word, pos),
+        ],
+        mean: [exampleAudioUrl(word, pos), exKoAudioUrl(word, pos)],
+        ex: [exKoAudioUrl(word, pos)],
         exko: [],
       };
   for (const url of steps[step]) preloadAudioUrl(url);

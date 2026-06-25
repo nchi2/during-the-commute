@@ -5,6 +5,7 @@ import { ChevronLeft } from "lucide-react";
 import {
   loadPlaybackSettings,
   savePlaybackSettings,
+  type EnglishPlaybackRate,
   type LoopMode,
   type PlaybackSettings,
 } from "@/lib/storage";
@@ -203,6 +204,28 @@ export default function SettingsScreen({
           />
         </SettingCard>
         )}
+
+        <SettingCard
+          title="재생 속도"
+          desc={
+            hideExampleSettings
+              ? "영어 문장 mp3 재생 속도입니다. 한국어 뜻은 항상 보통 속도로 재생됩니다."
+              : "영어 단어·예문 mp3 재생 속도입니다. 한국어 뜻·예문 뜻은 항상 보통 속도로 재생됩니다."
+          }
+        >
+          <Segmented<EnglishPlaybackRate>
+            value={settings.playbackRate}
+            options={[
+              { value: 0.8, label: "0.8×" },
+              { value: 1, label: "1×" },
+              { value: 1.25, label: "1.25×" },
+            ]}
+            onChange={(v) => patch({ playbackRate: v })}
+          />
+          <div style={{ fontSize: 11, color: C.muted, marginTop: 8, lineHeight: 1.5 }}>
+            0.8× 천천히 · 1× 보통 · 1.25× 빠르게(복습용)
+          </div>
+        </SettingCard>
 
         <SettingCard
           title="따라하기 텀"
