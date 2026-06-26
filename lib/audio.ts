@@ -11,8 +11,15 @@ import {
 } from "./audio-paths.mjs";
 import { loadPlaybackSettings } from "./storage";
 import type { LevelId } from "./storage";
+import { prepareTtsText } from "./tts-text.mjs";
 
 export { audioFileBase, sanitizeAudioFilename };
+
+type TtsField = "word" | "mean" | "ex" | "exKo";
+
+function ttsLangFromLocale(lang: string): "ko" | "en" {
+  return lang.startsWith("en") ? "en" : "ko";
+}
 
 let currentAudioSubdir = DEFAULT_AUDIO_SUBDIR;
 
@@ -216,18 +223,23 @@ async function playMp3OrTTS(
   fallbackText: string,
   lang: string,
   playbackRate = 1,
+  field?: TtsField,
 ): Promise<void> {
   const ok = await playMp3(url, playbackRate);
   if (stopRequested) return;
   if (!ok) {
     const ttsRate = lang.startsWith("en") ? 0.92 * playbackRate : 0.92;
-    await speakOnceTTS(fallbackText, lang, ttsRate);
+    const prepared = prepareTtsText(fallbackText, {
+      lang: ttsLangFromLocale(lang),
+      field,
+    });
+    await speakOnceTTS(prepared, lang, ttsRate);
   }
 }
 
 export async function speakEnglishWord(word: string, pos?: string): Promise<void> {
   const rate = getEnglishPlaybackRate();
-  await playMp3OrTTS(wordAudioUrl(word, pos), word, "en-US", rate);
+  await playMp3OrTTS(wordAudioUrl(word, pos), word, "en-US", rate, "word");
 }
 
 export async function speakEnglishExample(
@@ -236,7 +248,7 @@ export async function speakEnglishExample(
   pos?: string,
 ): Promise<void> {
   const rate = getEnglishPlaybackRate();
-  await playMp3OrTTS(exampleAudioUrl(word, pos), ex, "en-US", rate);
+  await playMp3OrTTS(exampleAudioUrl(word, pos), ex, "en-US", rate, "ex");
 }
 
 export async function speakKoreanMean(
@@ -244,7 +256,7 @@ export async function speakKoreanMean(
   mean: string,
   pos?: string,
 ): Promise<void> {
-  await playMp3OrTTS(meanAudioUrl(word, pos), mean, "ko-KR", 1);
+  await playMp3OrTTS(meanAudioUrl(word, pos), mean, "ko-KR", 1, "mean");
 }
 
 export async function speakKoreanExKo(
@@ -252,7 +264,7 @@ export async function speakKoreanExKo(
   exKo: string,
   pos?: string,
 ): Promise<void> {
-  await playMp3OrTTS(exKoAudioUrl(word, pos), exKo, "ko-KR", 1);
+  await playMp3OrTTS(exKoAudioUrl(word, pos), exKo, "ko-KR", 1, "exKo");
 }
 
 export function speakEnglishWordNow(word: string, pos?: string): void {
