@@ -5,6 +5,7 @@ import {
   exKoAudioUrl as buildExKoAudioUrl,
   getAudioSubdirForLevel,
   getAudioSubdirForMomLevel,
+  getAudioSubdirForToeicLevel,
   meanAudioUrl as buildMeanAudioUrl,
   skipsExamplePhaseForAudioSubdir,
   wordAudioUrl as buildWordAudioUrl,
@@ -37,6 +38,10 @@ export function setAudioSubdirForLevel(level: LevelId): void {
 
 export function setAudioSubdirForMomLevel(momLevelId: string): void {
   setAudioSubdir(getAudioSubdirForMomLevel(momLevelId));
+}
+
+export function setAudioSubdirForToeicLevel(toeicLevelId: string): void {
+  setAudioSubdir(getAudioSubdirForToeicLevel(toeicLevelId));
 }
 
 export function skipsExamplePhase(): boolean {

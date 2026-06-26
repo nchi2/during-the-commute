@@ -30,9 +30,13 @@ import {
   loadPlaybackSettings,
   loadSelectedLevel,
   loadSelectedMomLevel,
+  loadSelectedToeicLevel,
+  loadSelectedToeicSet,
   saveQuizScore,
   saveSelectedLevel,
   saveSelectedMomLevel,
+  saveSelectedToeicLevel,
+  saveSelectedToeicSet,
 } from "@/lib/storage";
 import type { LevelId } from "@/lib/storage";
 import {
@@ -42,6 +46,7 @@ import {
   reclaimAudioSession,
   setAudioSubdirForLevel,
   setAudioSubdirForMomLevel,
+  setAudioSubdirForToeicLevel,
   skipsExamplePhase,
   speakEnglishExample,
   speakEnglishExampleNow,
@@ -65,11 +70,16 @@ import {
   getMomLevel,
   getMomLevels,
   getMomStudyItems,
+  getToeicLevel,
+  getToeicLevels,
+  getToeicSet,
   isSimpleListenLevel,
   MOM_LEVEL01_WORD_COUNT,
+  TOEIC_LEVEL01_WORD_COUNT,
   type MomLevelId,
+  type ToeicLevelId,
 } from "@/lib/word-data";
-import { getWordCatalog, resolveWordIds } from "@/lib/playlists";
+import { buildWordCatalog, getWordCatalog, resolveWordIds } from "@/lib/playlists";
 import type { WordId } from "@/lib/playlists";
 import { useHiddenWords } from "@/hooks/useHiddenWords";
 import PlaylistSection from "@/components/PlaylistSection";
@@ -148,6 +158,12 @@ const LEVEL_CATEGORIES: LevelCategory[] = [
     label: "토익",
     levels: [
       {
+        id: "toeic",
+        label: "토익",
+        desc: `Level 1 · ${TOEIC_LEVEL01_WORD_COUNT}단어~`,
+        active: true,
+      },
+      {
         id: "toeic-750",
         label: "토익 750",
         desc: "목표 점수별 단어",
@@ -180,6 +196,7 @@ const LEVEL_LABEL: Record<LevelId, string> = {
   intermediate: "중급",
   advanced: "고급",
   "toeic-750": "토익 750",
+  toeic: "토익",
   namjeonghyeon: "남정현",
   eomuni: "어무니",
 };
@@ -208,6 +225,9 @@ export default function EnglishStudyApp() {
   const [levelToast, setLevelToast] = useState<string | null>(null);
   const [momLevel, setMomLevel] = useState<MomLevelId | null>(null);
   const [momToast, setMomToast] = useState<string | null>(null);
+  const [toeicLevel, setToeicLevel] = useState<ToeicLevelId | null>(null);
+  const [toeicSet, setToeicSet] = useState<string | null>(null);
+  const [toeicToast, setToeicToast] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("study");
   const [selected, setSelected] = useState<Set<WordId>>(new Set());
   const [started, setStarted] = useState(false);
@@ -261,6 +281,23 @@ export default function EnglishStudyApp() {
           setMomLevel(savedMom as MomLevelId);
           setAudioSubdirForMomLevel(savedMom);
         }
+      } else if (saved === "toeic") {
+        const savedToeicLevel = loadSelectedToeicLevel();
+        const savedToeicSet = loadSelectedToeicSet();
+        const levelEntry = savedToeicLevel
+          ? getToeicLevel(savedToeicLevel)
+          : undefined;
+        const setEntry =
+          savedToeicLevel && savedToeicSet
+            ? getToeicSet(savedToeicLevel, savedToeicSet)
+            : undefined;
+        if (savedToeicLevel && levelEntry?.active) {
+          setToeicLevel(savedToeicLevel as ToeicLevelId);
+          setAudioSubdirForToeicLevel(savedToeicLevel);
+          if (savedToeicSet && setEntry?.active) {
+            setToeicSet(savedToeicSet);
+          }
+        }
       } else {
         setAudioSubdirForLevel(saved);
       }
@@ -271,10 +308,12 @@ export default function EnglishStudyApp() {
   useEffect(() => {
     if (level === "eomuni" && momLevel) {
       setAudioSubdirForMomLevel(momLevel);
-    } else if (level && level !== "eomuni") {
+    } else if (level === "toeic" && toeicLevel) {
+      setAudioSubdirForToeicLevel(toeicLevel);
+    } else if (level && level !== "eomuni" && level !== "toeic") {
       setAudioSubdirForLevel(level);
     }
-  }, [level, momLevel]);
+  }, [level, momLevel, toeicLevel]);
 
   const handleSelectLevel = (id: LevelId, active: boolean) => {
     if (!active) {
@@ -291,10 +330,27 @@ export default function EnglishStudyApp() {
     if (id === "eomuni") {
       setMomLevel(null);
       saveSelectedMomLevel(null);
+      setToeicLevel(null);
+      setToeicSet(null);
+      saveSelectedToeicLevel(null);
+      saveSelectedToeicSet(null);
+      setSelected(new Set());
+    } else if (id === "toeic") {
+      setMomLevel(null);
+      saveSelectedMomLevel(null);
+      setToeicLevel(null);
+      setToeicSet(null);
+      saveSelectedToeicLevel(null);
+      saveSelectedToeicSet(null);
+      setStarted(false);
       setSelected(new Set());
     } else {
       setMomLevel(null);
       saveSelectedMomLevel(null);
+      setToeicLevel(null);
+      setToeicSet(null);
+      saveSelectedToeicLevel(null);
+      saveSelectedToeicSet(null);
       setStarted(false);
       setSelected(new Set());
       setAudioSubdirForLevel(id);
@@ -313,6 +369,57 @@ export default function EnglishStudyApp() {
     setAudioSubdirForMomLevel(id);
   };
 
+  const handleSelectToeicLevel = (id: ToeicLevelId, active: boolean) => {
+    if (!active) {
+      setToeicToast("준비 중입니다");
+      setTimeout(() => setToeicToast(null), 2500);
+      return;
+    }
+    cancelPlayback();
+    setToeicLevel(id);
+    setToeicSet(null);
+    saveSelectedToeicLevel(id);
+    saveSelectedToeicSet(null);
+    setAudioSubdirForToeicLevel(id);
+    setStarted(false);
+    setSelected(new Set());
+    setPlaylistSession(null);
+  };
+
+  const handleSelectToeicSet = (id: string, active: boolean) => {
+    if (!active) {
+      setToeicToast("준비 중입니다");
+      setTimeout(() => setToeicToast(null), 2500);
+      return;
+    }
+    cancelPlayback();
+    setToeicSet(id);
+    saveSelectedToeicSet(id);
+    setStarted(false);
+    setSelected(new Set());
+    setPlaylistSession(null);
+  };
+
+  const handleToeicLevelBack = () => {
+    cancelPlayback();
+    setToeicLevel(null);
+    setToeicSet(null);
+    saveSelectedToeicLevel(null);
+    saveSelectedToeicSet(null);
+    setStarted(false);
+    setSelected(new Set());
+    setPlaylistSession(null);
+  };
+
+  const handleToeicSetBack = () => {
+    cancelPlayback();
+    setToeicSet(null);
+    saveSelectedToeicSet(null);
+    setStarted(false);
+    setSelected(new Set());
+    setPlaylistSession(null);
+  };
+
   const handleMomLevelBack = () => {
     cancelPlayback();
     setMomLevel(null);
@@ -328,6 +435,10 @@ export default function EnglishStudyApp() {
     setSelected(new Set());
     setMomLevel(null);
     saveSelectedMomLevel(null);
+    setToeicLevel(null);
+    setToeicSet(null);
+    saveSelectedToeicLevel(null);
+    saveSelectedToeicSet(null);
     setLevel(null);
     saveSelectedLevel(null);
     setPlaylistSession(null);
@@ -343,6 +454,10 @@ export default function EnglishStudyApp() {
     setSelected(new Set());
     setMomLevel(null);
     saveSelectedMomLevel(null);
+    setToeicLevel(null);
+    setToeicSet(null);
+    saveSelectedToeicLevel(null);
+    saveSelectedToeicSet(null);
     setLevel(null);
     saveSelectedLevel(null);
     setPlaylistSession(null);
@@ -354,12 +469,20 @@ export default function EnglishStudyApp() {
     return getMomStudyItems(momLevel);
   }, [momLevel]);
 
+  const toeicCatalog = useMemo(() => {
+    if (!toeicLevel || !toeicSet) return null;
+    const set = getToeicSet(toeicLevel, toeicSet);
+    if (!set?.active) return null;
+    return buildWordCatalog(set.groups);
+  }, [toeicLevel, toeicSet]);
+
   const items = useMemo(() => {
-    const ids = getWordCatalog()
+    const catalog = toeicCatalog ?? getWordCatalog();
+    const ids = catalog
       .filter((w) => selected.has(w.id) && !hiddenIds.has(w.id))
       .map((w) => w.id);
-    return resolveWordIds(ids);
-  }, [selected, hiddenIds]);
+    return resolveWordIds(ids, catalog);
+  }, [selected, hiddenIds, toeicCatalog]);
 
   if (!levelReady) {
     return (
@@ -379,6 +502,9 @@ export default function EnglishStudyApp() {
   }
 
   const isMomMode = isSimpleListenLevel(level);
+  const isToeicMode = level === "toeic";
+  const showStudyTabs =
+    !isMomMode && !(isToeicMode && (!toeicLevel || !toeicSet));
 
   return (
     <div
@@ -481,6 +607,15 @@ export default function EnglishStudyApp() {
                   · {getMomLevel(momLevel)?.label}
                 </span>
               )}
+              {isToeicMode && toeicLevel && (
+                <span style={{ color: C.muted, fontWeight: 500 }}>
+                  {" "}
+                  · {getToeicLevel(toeicLevel)?.label}
+                  {toeicSet && (
+                    <> · {getToeicSet(toeicLevel, toeicSet)?.label}</>
+                  )}
+                </span>
+              )}
             </span>
             <div style={{ display: "flex", gap: 6 }}>
               <button
@@ -512,11 +647,11 @@ export default function EnglishStudyApp() {
                   cursor: "pointer",
                 }}
               >
-                {isMomMode ? "문장노트 변경" : "단어장 변경"}
+                {isMomMode ? "문장노트 변경" : isToeicMode ? "토익 변경" : "단어장 변경"}
               </button>
             </div>
           </div>
-          {!showSettings && !isMomMode && (
+          {!showSettings && showStudyTabs && (
             <div style={{ display: "flex", gap: 6, marginTop: 14 }}>
               {(
                 [
@@ -569,6 +704,116 @@ export default function EnglishStudyApp() {
             onBack={closeSettings}
             hideExampleSettings={isMomMode}
           />
+        ) : isToeicMode ? (
+          !toeicLevel ? (
+            <ToeicLevelSelectScreen
+              toast={toeicToast}
+              onSelect={handleSelectToeicLevel}
+              onBack={handleChangeLevel}
+            />
+          ) : !toeicSet ? (
+            <ToeicSetSelectScreen
+              levelId={toeicLevel}
+              toast={toeicToast}
+              onSelect={handleSelectToeicSet}
+              onBack={handleToeicLevelBack}
+            />
+          ) : (
+            <>
+              {playlistSession?.mode === "study" && (
+                <StudyView
+                  items={playlistSession.items}
+                  onBack={() => {
+                    setPlaylistSession(null);
+                  }}
+                />
+              )}
+              {playlistSession?.mode === "quiz" && (
+                <QuizView
+                  items={playlistSession.items}
+                  onBack={() => {
+                    cancelPlayback();
+                    setPlaylistSession(null);
+                  }}
+                />
+              )}
+
+              {!playlistSession && tab === "study" && !started && (
+                <GroupPicker
+                  catalog={toeicCatalog ?? undefined}
+                  selected={selected}
+                  onSelectedChange={setSelected}
+                  count={items.length}
+                  onStart={() => {
+                    cancelPlayback();
+                    if (items.length) setStarted(true);
+                  }}
+                  ctaLabel="학습 시작"
+                  hiddenIds={hiddenIds}
+                  hiddenCount={hiddenCount}
+                  onHideWord={hideWord}
+                  onRestoreWord={restoreWord}
+                  onRestoreAllHidden={restoreAllHidden}
+                />
+              )}
+              {!playlistSession && tab === "study" && started && (
+                <StudyView
+                  items={items}
+                  onBack={() => {
+                    setStarted(false);
+                  }}
+                />
+              )}
+              {!playlistSession && tab === "quiz" && !started && (
+                <GroupPicker
+                  catalog={toeicCatalog ?? undefined}
+                  selected={selected}
+                  onSelectedChange={setSelected}
+                  count={items.length}
+                  onStart={() => {
+                    cancelPlayback();
+                    if (items.length >= 1) setStarted(true);
+                  }}
+                  ctaLabel="퀴즈 시작"
+                  minNote={
+                    items.length < 4 ? "4개 이상 단어를 선택하면 더 좋아" : null
+                  }
+                  hiddenIds={hiddenIds}
+                  hiddenCount={hiddenCount}
+                  onHideWord={hideWord}
+                  onRestoreWord={restoreWord}
+                  onRestoreAllHidden={restoreAllHidden}
+                />
+              )}
+              {!playlistSession && tab === "quiz" && started && (
+                <QuizView
+                  items={items}
+                  onBack={() => {
+                    setStarted(false);
+                  }}
+                />
+              )}
+              {!playlistSession && tab === "playlist" && (
+                <PlaylistSection
+                  wordCatalog={toeicCatalog ?? undefined}
+                  resetToken={playlistReset}
+                  hiddenIds={hiddenIds}
+                  hiddenCount={hiddenCount}
+                  onHideWord={hideWord}
+                  onRestoreWord={restoreWord}
+                  onRestoreAllHidden={restoreAllHidden}
+                  onStartStudy={(playlistItems: PlaylistStudyItem[]) => {
+                    cancelPlayback();
+                    setPlaylistSession({ mode: "study", items: playlistItems });
+                  }}
+                  onStartQuiz={(playlistItems: PlaylistStudyItem[]) => {
+                    cancelPlayback();
+                    setPlaylistSession({ mode: "quiz", items: playlistItems });
+                  }}
+                />
+              )}
+            </>
+          )
         ) : isMomMode ? (
           momLevel ? (
             <StudyView
@@ -979,7 +1224,280 @@ function MomLevelSelectScreen({
   );
 }
 
+function ToeicLevelSelectScreen({
+  toast,
+  onSelect,
+  onBack,
+}: {
+  toast: string | null;
+  onSelect: (id: ToeicLevelId, active: boolean) => void;
+  onBack: () => void;
+}) {
+  const levels = getToeicLevels();
+
+  return (
+    <div
+      style={{
+        flex: 1,
+        minHeight: 0,
+        overflowY: "auto",
+        WebkitOverflowScrolling: "touch",
+        padding: "20px 20px 32px",
+      }}
+    >
+      <button
+        type="button"
+        onClick={onBack}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
+          background: "none",
+          border: "none",
+          color: C.muted,
+          cursor: "pointer",
+          fontSize: 14,
+          marginBottom: 20,
+          padding: 0,
+        }}
+      >
+        <ChevronLeft size={18} /> 단어장 선택
+      </button>
+
+      <h2
+        style={{
+          margin: "0 0 6px",
+          fontSize: 22,
+          fontWeight: 800,
+        }}
+      >
+        토익
+      </h2>
+      <p style={{ margin: "0 0 20px", fontSize: 14, color: C.muted }}>
+        레벨을 골라 학습을 시작하세요
+      </p>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {levels.map((entry) => {
+          const count = entry.sets
+            .filter((s) => s.active)
+            .reduce(
+              (n, s) => n + s.groups.reduce((m, g) => m + g.words.length, 0),
+              0,
+            );
+          const desc = entry.active
+            ? `${entry.desc} · ${count}단어~`
+            : entry.desc;
+          return (
+            <button
+              key={entry.id}
+              type="button"
+              onClick={() => onSelect(entry.id as ToeicLevelId, entry.active)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+                textAlign: "left",
+                padding: "15px 16px",
+                borderRadius: 12,
+                cursor: entry.active ? "pointer" : "not-allowed",
+                background: entry.active ? C.elevated : C.card,
+                border: `1px solid ${entry.active ? C.gold : C.border}`,
+                color: entry.active ? C.text : C.muted,
+                opacity: entry.active ? 1 : 0.55,
+                width: "100%",
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 17, fontWeight: 700 }}>{entry.label}</div>
+                <div
+                  style={{
+                    fontSize: 13,
+                    color: C.muted,
+                    marginTop: 4,
+                  }}
+                >
+                  {desc}
+                </div>
+              </div>
+              {!entry.active && (
+                <span
+                  style={{
+                    flexShrink: 0,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: C.muted,
+                    border: `1px solid ${C.border}`,
+                    padding: "3px 8px",
+                    borderRadius: 6,
+                  }}
+                >
+                  준비 중
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {toast && (
+        <div
+          style={{
+            marginTop: 16,
+            textAlign: "center",
+            fontSize: 14,
+            color: C.gold,
+            padding: "10px 14px",
+            borderRadius: 10,
+            background: C.elevated,
+            border: `1px solid ${C.goldDim}`,
+          }}
+        >
+          {toast}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ToeicSetSelectScreen({
+  levelId,
+  toast,
+  onSelect,
+  onBack,
+}: {
+  levelId: ToeicLevelId;
+  toast: string | null;
+  onSelect: (id: string, active: boolean) => void;
+  onBack: () => void;
+}) {
+  const level = getToeicLevel(levelId);
+  const sets = level?.sets ?? [];
+
+  return (
+    <div
+      style={{
+        flex: 1,
+        minHeight: 0,
+        overflowY: "auto",
+        WebkitOverflowScrolling: "touch",
+        padding: "20px 20px 32px",
+      }}
+    >
+      <button
+        type="button"
+        onClick={onBack}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
+          background: "none",
+          border: "none",
+          color: C.muted,
+          cursor: "pointer",
+          fontSize: 14,
+          marginBottom: 20,
+          padding: 0,
+        }}
+      >
+        <ChevronLeft size={18} /> 레벨
+      </button>
+
+      <h2
+        style={{
+          margin: "0 0 6px",
+          fontSize: 22,
+          fontWeight: 800,
+        }}
+      >
+        {level?.label ?? "Level"}
+      </h2>
+      <p style={{ margin: "0 0 20px", fontSize: 14, color: C.muted }}>
+        Set을 골라 단어를 학습하세요
+      </p>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {sets.map((entry) => {
+          const count = entry.groups.reduce((n, g) => n + g.words.length, 0);
+          const desc = entry.active
+            ? `${entry.desc} · ${count}단어`
+            : entry.desc;
+          return (
+            <button
+              key={entry.id}
+              type="button"
+              onClick={() => onSelect(entry.id, entry.active)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+                textAlign: "left",
+                padding: "15px 16px",
+                borderRadius: 12,
+                cursor: entry.active ? "pointer" : "not-allowed",
+                background: entry.active ? C.elevated : C.card,
+                border: `1px solid ${entry.active ? C.gold : C.border}`,
+                color: entry.active ? C.text : C.muted,
+                opacity: entry.active ? 1 : 0.55,
+                width: "100%",
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 17, fontWeight: 700 }}>{entry.label}</div>
+                <div
+                  style={{
+                    fontSize: 13,
+                    color: C.muted,
+                    marginTop: 4,
+                  }}
+                >
+                  {desc}
+                </div>
+              </div>
+              {!entry.active && (
+                <span
+                  style={{
+                    flexShrink: 0,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: C.muted,
+                    border: `1px solid ${C.border}`,
+                    padding: "3px 8px",
+                    borderRadius: 6,
+                  }}
+                >
+                  준비 중
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {toast && (
+        <div
+          style={{
+            marginTop: 16,
+            textAlign: "center",
+            fontSize: 14,
+            color: C.gold,
+            padding: "10px 14px",
+            borderRadius: 10,
+            background: C.elevated,
+            border: `1px solid ${C.goldDim}`,
+          }}
+        >
+          {toast}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function GroupPicker({
+  catalog,
   selected,
   onSelectedChange,
   onStart,
@@ -992,6 +1510,7 @@ function GroupPicker({
   onRestoreWord,
   onRestoreAllHidden,
 }: {
+  catalog?: ReturnType<typeof getWordCatalog>;
   selected: Set<WordId>;
   onSelectedChange: (s: Set<WordId>) => void;
   onStart: () => void;
@@ -1012,7 +1531,10 @@ function GroupPicker({
   );
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const allWords = useMemo(() => getWordCatalog(), []);
+  const allWords = useMemo(
+    () => catalog ?? getWordCatalog(),
+    [catalog],
+  );
   const query = searchQuery.trim().toLowerCase();
 
   const displayedWords = useMemo(() => {

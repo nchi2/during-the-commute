@@ -5,6 +5,7 @@ export type LevelId =
   | "intermediate"
   | "advanced"
   | "toeic-750"
+  | "toeic"
   | "namjeonghyeon"
   | "eomuni";
 
@@ -23,13 +24,14 @@ export type PlaybackSettings = {
   playbackRate: EnglishPlaybackRate;
 };
 
-const ACTIVE_LEVELS: LevelId[] = ["namjeonghyeon", "eomuni"];
+const ACTIVE_LEVELS: LevelId[] = ["namjeonghyeon", "eomuni", "toeic"];
 
 const ALL_LEVEL_IDS: LevelId[] = [
   "basic",
   "intermediate",
   "advanced",
   "toeic-750",
+  "toeic",
   "namjeonghyeon",
   "eomuni",
 ];
@@ -43,6 +45,8 @@ export type StoredSettings = PlaybackSettings & {
   quizScores: Record<string, QuizScoreEntry>;
   selectedLevel?: LevelId;
   selectedMomLevel?: string;
+  selectedToeicLevel?: string;
+  selectedToeicSet?: string;
 };
 
 export const PLAYBACK_DEFAULTS: PlaybackSettings = {
@@ -195,7 +199,13 @@ export function loadSelectedLevel(): LevelId | null {
 
 export function saveSelectedLevel(level: LevelId | null) {
   if (level === null) {
-    const { selectedLevel: _, selectedMomLevel: __, ...rest } = load();
+    const {
+      selectedLevel: _,
+      selectedMomLevel: __,
+      selectedToeicLevel: ___,
+      selectedToeicSet: ____,
+      ...rest
+    } = load();
     if (typeof window === "undefined") return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(rest));
     return;
@@ -215,6 +225,34 @@ export function saveSelectedMomLevel(momLevel: string | null) {
     return;
   }
   write({ selectedMomLevel: momLevel });
+}
+
+export function loadSelectedToeicLevel(): string | null {
+  return load().selectedToeicLevel ?? null;
+}
+
+export function saveSelectedToeicLevel(toeicLevel: string | null) {
+  if (toeicLevel === null) {
+    const { selectedToeicLevel: _, selectedToeicSet: __, ...rest } = load();
+    if (typeof window === "undefined") return;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(rest));
+    return;
+  }
+  write({ selectedToeicLevel: toeicLevel });
+}
+
+export function loadSelectedToeicSet(): string | null {
+  return load().selectedToeicSet ?? null;
+}
+
+export function saveSelectedToeicSet(toeicSet: string | null) {
+  if (toeicSet === null) {
+    const { selectedToeicSet: _, ...rest } = load();
+    if (typeof window === "undefined") return;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(rest));
+    return;
+  }
+  write({ selectedToeicSet: toeicSet });
 }
 
 export function saveQuizScore(score: number, total: number) {

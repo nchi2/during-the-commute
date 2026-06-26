@@ -8,7 +8,7 @@
  * 데이터셋 (DATASET 환경변수, 기본값 GROUPS):
  *   GROUPS     — data/groups.mjs (영어 단어장, 기본)
  *   mom        — data/groups.mom.mjs (어무니 생활 문장)
- *   toeic      — data/groups.toeic.level01.mjs (토익 Level 1)
+ *   toeic      — data/groups.toeic.mjs (토익 Level·Set)
  *
  * 테스트 (첫 항목 1~2개):
  *   TEST_ONLY=1 node --env-file=.env scripts/generate-audio.mjs
@@ -19,7 +19,7 @@
  *   node --env-file=.env scripts/generate-audio.mjs
  *   DATASET=mom MOM_LEVEL=level01 node --env-file=.env scripts/generate-audio.mjs
  *     → public/audio/mom/level01/
- *   DATASET=toeic LEVEL=1 node --env-file=.env scripts/generate-audio.mjs
+ *   DATASET=toeic LEVEL=1 SET=set01 node --env-file=.env scripts/generate-audio.mjs
  *     → public/audio/toeic/level01/
  */
 
@@ -28,7 +28,7 @@ import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { GROUPS } from "../data/groups.mjs";
 import { MOM_LEVELS } from "../data/groups.mom.mjs";
-import { TOEIC_LEVEL01_GROUPS } from "../data/groups.toeic.level01.mjs";
+import { TOEIC_LEVELS } from "../data/groups.toeic.mjs";
 import { audioFileBase } from "../lib/audio-filename.mjs";
 import { getAudioSubdirForDataset } from "../lib/audio-paths.mjs";
 import { prepareTtsText } from "../lib/tts-text.mjs";
@@ -66,7 +66,9 @@ const momLevelId = process.env.MOM_LEVEL || "level01";
 const toeicLevelId = normalizeToeicLevelId(
   process.env.TOEIC_LEVEL || process.env.LEVEL || "1",
 );
+const toeicSetId = process.env.TOEIC_SET || process.env.SET || null;
 const momEntry = isMom ? MOM_LEVELS.find((l) => l.id === momLevelId) : null;
+const toeicEntry = isToeic ? TOEIC_LEVELS.find((l) => l.id === toeicLevelId) : null;
 
 let groups;
 let datasetLabel;
@@ -77,13 +79,26 @@ if (isMom) {
   datasetLabel = `MOM ${momLevelId}`;
   audioLevelId = momLevelId;
 } else if (isToeic) {
-  if (toeicLevelId !== "level01") {
+  if (!toeicEntry) {
     console.error(`알 수 없는 TOEIC LEVEL: ${process.env.LEVEL ?? process.env.TOEIC_LEVEL}`);
-    console.error("  현재 사용 가능: 1 (level01)");
+    console.error(`  사용 가능: ${TOEIC_LEVELS.map((l) => l.id).join(", ")}`);
     process.exit(1);
   }
-  groups = TOEIC_LEVEL01_GROUPS;
-  datasetLabel = `TOEIC ${toeicLevelId}`;
+  if (toeicSetId) {
+    const setEntry = toeicEntry.sets.find((s) => s.id === toeicSetId);
+    if (!setEntry) {
+      console.error(`알 수 없는 TOEIC SET: ${toeicSetId}`);
+      console.error(
+        `  ${toeicLevelId} 사용 가능: ${toeicEntry.sets.map((s) => s.id).join(", ")}`,
+      );
+      process.exit(1);
+    }
+    groups = setEntry.groups;
+    datasetLabel = `TOEIC ${toeicLevelId} ${toeicSetId}`;
+  } else {
+    groups = toeicEntry.sets.flatMap((s) => s.groups);
+    datasetLabel = `TOEIC ${toeicLevelId} (전체 Set)`;
+  }
   audioLevelId = toeicLevelId;
 } else {
   groups = GROUPS;
@@ -243,7 +258,7 @@ if (testOnly) {
   if (isMom) {
     console.log("  DATASET=mom MOM_LEVEL=level01 node --env-file=.env scripts/generate-audio.mjs");
   } else if (isToeic) {
-    console.log("  DATASET=toeic LEVEL=1 node --env-file=.env scripts/generate-audio.mjs");
+    console.log("  DATASET=toeic LEVEL=1 SET=set01 node --env-file=.env scripts/generate-audio.mjs");
   } else {
     console.log("  node --env-file=.env scripts/generate-audio.mjs");
   }

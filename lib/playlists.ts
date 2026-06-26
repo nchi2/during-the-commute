@@ -1,4 +1,5 @@
 import { GROUPS } from "@/data/groups.mjs";
+import type { WordGroup } from "@/lib/word-data";
 
 export type WordId = string;
 
@@ -41,28 +42,35 @@ export function makeWordId(groupId: number, word: string, pos: string): WordId {
 
 let catalogCache: CatalogWord[] | null = null;
 
+export function buildWordCatalog(groups: WordGroup[]): CatalogWord[] {
+  return groups.flatMap((g, gi) =>
+    g.words.map((w, wi) => ({
+      id: makeWordId(g.id, w.word, w.pos),
+      groupId: g.id,
+      concept: g.concept,
+      conceptKo: g.ko,
+      pos: w.pos,
+      word: w.word,
+      mean: w.mean,
+      ex: w.ex,
+      exKo: w.exKo,
+      order: gi * 10000 + wi,
+    })),
+  );
+}
+
 export function getWordCatalog(): CatalogWord[] {
   if (!catalogCache) {
-    catalogCache = GROUPS.flatMap((g, gi) =>
-      g.words.map((w, wi) => ({
-        id: makeWordId(g.id, w.word, w.pos),
-        groupId: g.id,
-        concept: g.concept,
-        conceptKo: g.ko,
-        pos: w.pos,
-        word: w.word,
-        mean: w.mean,
-        ex: w.ex,
-        exKo: w.exKo,
-        order: gi * 10000 + wi,
-      })),
-    );
+    catalogCache = buildWordCatalog(GROUPS as WordGroup[]);
   }
   return catalogCache;
 }
 
-export function resolveWordIds(wordIds: WordId[]): StudyItem[] {
-  const map = new Map(getWordCatalog().map((w) => [w.id, w]));
+export function resolveWordIds(
+  wordIds: WordId[],
+  catalog?: CatalogWord[],
+): StudyItem[] {
+  const map = new Map((catalog ?? getWordCatalog()).map((w) => [w.id, w]));
   const out: StudyItem[] = [];
   for (const id of wordIds) {
     const w = map.get(id);

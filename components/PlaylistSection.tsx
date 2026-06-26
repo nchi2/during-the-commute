@@ -74,6 +74,7 @@ type Props = {
   onHideWord: (id: WordId) => void;
   onRestoreWord: (id: WordId) => void;
   onRestoreAllHidden: () => void;
+  wordCatalog?: CatalogWord[];
 };
 
 export default function PlaylistSection({
@@ -85,6 +86,7 @@ export default function PlaylistSection({
   onHideWord,
   onRestoreWord,
   onRestoreAllHidden,
+  wordCatalog,
 }: Props) {
   const [screen, setScreen] = useState<Screen>({ type: "list" });
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
@@ -115,6 +117,7 @@ export default function PlaylistSection({
         }}
       >
       <WordPicker
+        wordCatalog={wordCatalog}
         selected={pickIds}
         onChange={setPickIds}
         onBack={() => {
@@ -173,6 +176,7 @@ export default function PlaylistSection({
         }}
       >
         <PlaylistEdit
+          wordCatalog={wordCatalog}
           playlist={pl}
           onBack={() => {
             refresh();
@@ -374,19 +378,21 @@ function PlaylistList({
 }
 
 function PlaylistEdit({
+  wordCatalog,
   playlist,
   onBack,
   onRemove,
   onAddWords,
   onRename,
 }: {
+  wordCatalog?: CatalogWord[];
   playlist: Playlist;
   onBack: () => void;
   onRemove: (wordId: WordId) => void;
   onAddWords: () => void;
   onRename: (name: string) => void;
 }) {
-  const catalog = getWordCatalog();
+  const catalog = wordCatalog ?? getWordCatalog();
   const map = useMemo(
     () => new Map(catalog.map((w) => [w.id, w])),
     [catalog],
@@ -545,6 +551,7 @@ function XIcon() {
 }
 
 function WordPicker({
+  wordCatalog,
   selected,
   onChange,
   onBack,
@@ -559,6 +566,7 @@ function WordPicker({
   onRestoreWord,
   onRestoreAllHidden,
 }: {
+  wordCatalog?: CatalogWord[];
   selected: Set<WordId>;
   onChange: (s: Set<WordId>) => void;
   onBack: () => void;
@@ -582,7 +590,10 @@ function WordPicker({
   const [undo, setUndo] = useState<{ id: WordId; label: string } | null>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const allWords = useMemo(() => getWordCatalog(), []);
+  const allWords = useMemo(
+    () => wordCatalog ?? getWordCatalog(),
+    [wordCatalog],
+  );
   const query = searchQuery.trim().toLowerCase();
 
   const displayedWords = useMemo(() => {
