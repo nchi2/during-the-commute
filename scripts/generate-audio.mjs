@@ -21,6 +21,8 @@
  *     → public/audio/mom/level01/
  *   DATASET=toeic LEVEL=1 SET=set01 node --env-file=.env scripts/generate-audio.mjs
  *     → public/audio/toeic/level01/
+ *   DATASET=toeic LEVEL=2 SET=set01 GROUP_ID=30 node --env-file=.env scripts/generate-audio.mjs
+ *     → 특정 그룹만 생성 (예: affect/effect 그룹)
  */
 
 import { writeFileSync, existsSync, mkdirSync, copyFileSync } from "fs";
@@ -57,6 +59,9 @@ function normalizeToeicLevelId(raw) {
   const value = String(raw ?? "1").trim().toLowerCase();
   if (value === "1" || value === "01" || value === "level01" || value === "level1") {
     return "level01";
+  }
+  if (value === "2" || value === "02" || value === "level02" || value === "level2") {
+    return "level02";
   }
   if (value.startsWith("level")) return value;
   return `level${value.padStart(2, "0")}`;
@@ -104,6 +109,21 @@ if (isMom) {
   groups = GROUPS;
   datasetLabel = "GROUPS";
   audioLevelId = "level01";
+}
+
+const groupIdFilter = process.env.GROUP_ID || process.env.TOEIC_GROUP_ID;
+if (groupIdFilter) {
+  const targetId = Number(groupIdFilter);
+  const filtered = groups.filter((g) => g.id === targetId);
+  if (filtered.length === 0) {
+    console.error(`GROUP_ID ${groupIdFilter}에 해당하는 그룹이 없습니다.`);
+    console.error(
+      `  사용 가능 id: ${groups.map((g) => g.id).join(", ")}`,
+    );
+    process.exit(1);
+  }
+  groups = filtered;
+  datasetLabel += ` group#${targetId}`;
 }
 
 const AUDIO_SUBDIR = getAudioSubdirForDataset(dataset, audioLevelId);
@@ -216,15 +236,20 @@ if (!apiKey) {
 
 const testOnly =
   process.env.TEST_ONLY === "1" || process.env.TEST_ONLY === "true";
+const onlyGroup = Boolean(groupIdFilter);
 
 mkdirSync(AUDIO_DIR, { recursive: true });
 
 const allWords = groups.flatMap((g) => g.words);
-const testLimit = testOnly ? (isToeic ? 2 : 1) : allWords.length;
+const testLimit = testOnly && !onlyGroup ? (isToeic ? 2 : 1) : allWords.length;
 const words = allWords.slice(0, testLimit);
-const includeEnglish = !testOnly || isMom || isToeic;
+const includeEnglish = !testOnly || isMom || isToeic || onlyGroup;
 
-if (testOnly) {
+if (onlyGroup) {
+  console.log(
+    `GROUP_ID=${groupIdFilter} [${datasetLabel}] → audio/${AUDIO_SUBDIR}/: ${words.length}개 항목`,
+  );
+} else if (testOnly) {
   console.log(
     `TEST_ONLY [${datasetLabel}] → audio/${AUDIO_SUBDIR}/: 첫 ${words.length}개 항목 (${words[0]?.word?.slice(0, 40)}…)`,
   );
@@ -258,7 +283,10 @@ if (testOnly) {
   if (isMom) {
     console.log("  DATASET=mom MOM_LEVEL=level01 node --env-file=.env scripts/generate-audio.mjs");
   } else if (isToeic) {
-    console.log("  DATASET=toeic LEVEL=1 SET=set01 node --env-file=.env scripts/generate-audio.mjs");
+    const setArg = toeicSetId ? ` TOEIC_SET=${toeicSetId}` : "";
+    console.log(
+      `  DATASET=toeic TOEIC_LEVEL=${toeicLevelId}${setArg} node --env-file=.env scripts/generate-audio.mjs`,
+    );
   } else {
     console.log("  node --env-file=.env scripts/generate-audio.mjs");
   }

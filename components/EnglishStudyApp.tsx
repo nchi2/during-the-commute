@@ -589,34 +589,43 @@ export default function EnglishStudyApp() {
               marginTop: 12,
             }}
           >
-            <span
+            <div
               style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: C.gold,
-                border: `1px solid ${C.goldDim}`,
-                background: C.elevated,
-                padding: "4px 10px",
-                borderRadius: 8,
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                minWidth: 0,
               }}
             >
-              {LEVEL_LABEL[level]}
-              {isMomMode && momLevel && (
-                <span style={{ color: C.muted, fontWeight: 500 }}>
-                  {" "}
-                  · {getMomLevel(momLevel)?.label}
-                </span>
-              )}
-              {isToeicMode && toeicLevel && (
-                <span style={{ color: C.muted, fontWeight: 500 }}>
-                  {" "}
-                  · {getToeicLevel(toeicLevel)?.label}
-                  {toeicSet && (
-                    <> · {getToeicSet(toeicLevel, toeicSet)?.label}</>
-                  )}
-                </span>
-              )}
-            </span>
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: C.gold,
+                  border: `1px solid ${C.goldDim}`,
+                  background: C.elevated,
+                  padding: "4px 10px",
+                  borderRadius: 8,
+                }}
+              >
+                {LEVEL_LABEL[level]}
+                {isMomMode && momLevel && (
+                  <span style={{ color: C.muted, fontWeight: 500 }}>
+                    {" "}
+                    · {getMomLevel(momLevel)?.label}
+                  </span>
+                )}
+                {isToeicMode && toeicLevel && (
+                  <span style={{ color: C.muted, fontWeight: 500 }}>
+                    {" "}
+                    · {getToeicLevel(toeicLevel)?.label}
+                    {toeicSet && (
+                      <> · {getToeicSet(toeicLevel, toeicSet)?.label}</>
+                    )}
+                  </span>
+                )}
+              </span>
+            </div>
             <div style={{ display: "flex", gap: 6 }}>
               <button
                 onClick={openSettings}
@@ -651,6 +660,37 @@ export default function EnglishStudyApp() {
               </button>
             </div>
           </div>
+          {isToeicMode &&
+            toeicSet &&
+            !playlistSession &&
+            !showSettings &&
+            showStudyTabs && (
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  marginTop: 10,
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={handleToeicSetBack}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                    background: "none",
+                    border: "none",
+                    color: C.muted,
+                    cursor: "pointer",
+                    fontSize: 14,
+                    padding: 0,
+                  }}
+                >
+                  <ChevronLeft size={18} /> 세트선택
+                </button>
+              </div>
+            )}
           {!showSettings && showStudyTabs && (
             <div style={{ display: "flex", gap: 6, marginTop: 14 }}>
               {(
@@ -1245,24 +1285,31 @@ function ToeicLevelSelectScreen({
         padding: "20px 20px 32px",
       }}
     >
-      <button
-        type="button"
-        onClick={onBack}
+      <div
         style={{
           display: "flex",
-          alignItems: "center",
-          gap: 4,
-          background: "none",
-          border: "none",
-          color: C.muted,
-          cursor: "pointer",
-          fontSize: 14,
+          justifyContent: "flex-end",
           marginBottom: 20,
-          padding: 0,
         }}
       >
-        <ChevronLeft size={18} /> 단어장 선택
-      </button>
+        <button
+          type="button"
+          onClick={onBack}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            background: "none",
+            border: "none",
+            color: C.muted,
+            cursor: "pointer",
+            fontSize: 14,
+            padding: 0,
+          }}
+        >
+          <ChevronLeft size={18} /> 단어장 선택
+        </button>
+      </div>
 
       <h2
         style={{
@@ -1385,24 +1432,31 @@ function ToeicSetSelectScreen({
         padding: "20px 20px 32px",
       }}
     >
-      <button
-        type="button"
-        onClick={onBack}
+      <div
         style={{
           display: "flex",
-          alignItems: "center",
-          gap: 4,
-          background: "none",
-          border: "none",
-          color: C.muted,
-          cursor: "pointer",
-          fontSize: 14,
+          justifyContent: "flex-end",
           marginBottom: 20,
-          padding: 0,
         }}
       >
-        <ChevronLeft size={18} /> 레벨
-      </button>
+        <button
+          type="button"
+          onClick={onBack}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            background: "none",
+            border: "none",
+            color: C.muted,
+            cursor: "pointer",
+            fontSize: 14,
+            padding: 0,
+          }}
+        >
+          <ChevronLeft size={18} /> 레벨
+        </button>
+      </div>
 
       <h2
         style={{
