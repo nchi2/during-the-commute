@@ -1,0 +1,522 @@
+[
+  {
+    "id": 1,
+    "concept": "purchase",
+    "ko": "구매",
+    "topic": "배송/주문",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "v",
+        "word": "purchase",
+        "mean": "구매하다",
+        "ex": "You can purchase tickets online or at the door.",
+        "exKo": "티켓은 온라인이나 현장에서 구매할 수 있다."
+      },
+      {
+        "cat": "단어",
+        "pos": "n",
+        "word": "purchase",
+        "mean": "구매(품)",
+        "ex": "Keep your receipt as proof of purchase.",
+        "exKo": "구매 증빙으로 영수증을 보관하세요."
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "concept": "employment",
+    "ko": "고용",
+    "topic": "인사/채용",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "v",
+        "word": "employ",
+        "mean": "고용하다",
+        "ex": "The company employs more than 500 workers.",
+        "exKo": "그 회사는 500명이 넘는 직원을 고용하고 있다."
+      },
+      {
+        "cat": "단어",
+        "pos": "n",
+        "word": "employee",
+        "mean": "직원, 종업원",
+        "ex": "All employees must attend the safety training.",
+        "exKo": "모든 직원은 안전 교육에 참석해야 한다."
+      },
+      {
+        "cat": "단어",
+        "pos": "n",
+        "word": "employer",
+        "mean": "고용주",
+        "ex": "The employer offers health insurance to full-time staff.",
+        "exKo": "고용주는 정규직 직원에게 건강 보험을 제공한다."
+      },
+      {
+        "cat": "단어",
+        "pos": "n",
+        "word": "employment",
+        "mean": "고용, 취업",
+        "ex": "The new factory will create hundreds of employment opportunities.",
+        "exKo": "새 공장은 수백 개의 고용 기회를 창출할 것이다."
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "concept": "application",
+    "ko": "지원·신청",
+    "topic": "인사/채용",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "v",
+        "word": "apply",
+        "mean": "지원하다, 신청하다",
+        "ex": "You can apply for the position online.",
+        "exKo": "온라인으로 그 직책에 지원할 수 있다."
+      },
+      {
+        "cat": "단어",
+        "pos": "n",
+        "word": "application",
+        "mean": "지원(서), 신청(서)",
+        "ex": "Please submit your application by Friday.",
+        "exKo": "금요일까지 지원서를 제출하세요."
+      },
+      {
+        "cat": "단어",
+        "pos": "n",
+        "word": "applicant",
+        "mean": "지원자",
+        "ex": "We received over 200 applicants for the job.",
+        "exKo": "우리는 그 일자리에 200명이 넘는 지원자를 받았다."
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "concept": "recruitment",
+    "ko": "채용·모집",
+    "topic": "인사/채용",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "v",
+        "word": "recruit",
+        "mean": "모집하다, 채용하다",
+        "ex": "The firm is recruiting engineers for its new office.",
+        "exKo": "그 회사는 새 사무소를 위해 엔지니어를 채용하고 있다."
+      },
+      {
+        "cat": "단어",
+        "pos": "n",
+        "word": "recruitment",
+        "mean": "채용, 모집",
+        "ex": "The recruitment process takes about three weeks.",
+        "exKo": "채용 절차는 약 3주가 걸린다."
+      },
+      {
+        "cat": "단어",
+        "pos": "v",
+        "word": "hire",
+        "mean": "고용하다, 채용하다",
+        "ex": "We plan to hire two new clerks this month.",
+        "exKo": "우리는 이번 달에 신입 직원 두 명을 채용할 계획이다."
+      }
+    ]
+  },
+  {
+    "id": 5,
+    "concept": "experience",
+    "ko": "경력·경험",
+    "topic": "인사/채용",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "n",
+        "word": "experience",
+        "mean": "경험, 경력",
+        "ex": "This job requires three years of experience.",
+        "exKo": "이 일자리는 3년의 경력을 요구한다."
+      },
+      {
+        "cat": "단어",
+        "pos": "adj",
+        "word": "experienced",
+        "mean": "경험 많은, 숙련된",
+        "ex": "We are looking for an experienced accountant.",
+        "exKo": "우리는 경험 많은 회계사를 찾고 있다."
+      }
+    ]
+  },
+  {
+    "id": 6,
+    "concept": "qualification",
+    "ko": "자격",
+    "topic": "인사/채용",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "v",
+        "word": "qualify",
+        "mean": "자격을 얻다, 자격을 주다",
+        "ex": "She qualified for the manager position.",
+        "exKo": "그녀는 관리자 직책의 자격을 얻었다."
+      },
+      {
+        "cat": "단어",
+        "pos": "adj",
+        "word": "qualified",
+        "mean": "자격을 갖춘",
+        "ex": "Only qualified candidates will be interviewed.",
+        "exKo": "자격을 갖춘 지원자만 면접을 보게 된다."
+      },
+      {
+        "cat": "단어",
+        "pos": "n",
+        "word": "qualification",
+        "mean": "자격(요건)",
+        "ex": "A nursing license is a basic qualification for this role.",
+        "exKo": "간호사 면허는 이 직무의 기본 자격요건이다."
+      }
+    ]
+  },
+  {
+    "id": 7,
+    "concept": "promotion",
+    "ko": "승진·홍보",
+    "topic": "인사/채용",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "v",
+        "word": "promote",
+        "mean": "승진시키다, 홍보하다",
+        "ex": "She was promoted to senior manager last year.",
+        "exKo": "그녀는 작년에 수석 관리자로 승진했다."
+      },
+      {
+        "cat": "단어",
+        "pos": "n",
+        "word": "promotion",
+        "mean": "승진, 판촉·홍보",
+        "ex": "The store is offering a special promotion this weekend.",
+        "exKo": "그 매장은 이번 주말에 특별 판촉 행사를 진행한다."
+      },
+      {
+        "cat": "단어",
+        "pos": "adj",
+        "word": "promotional",
+        "mean": "홍보의, 판촉의",
+        "ex": "We handed out promotional flyers at the event.",
+        "exKo": "우리는 행사에서 홍보 전단지를 나눠 주었다."
+      }
+    ]
+  },
+  {
+    "id": 8,
+    "concept": "retirement",
+    "ko": "은퇴",
+    "topic": "인사/채용",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "v",
+        "word": "retire",
+        "mean": "은퇴하다",
+        "ex": "He plans to retire at the age of 60.",
+        "exKo": "그는 60세에 은퇴할 계획이다."
+      },
+      {
+        "cat": "단어",
+        "pos": "n",
+        "word": "retirement",
+        "mean": "은퇴",
+        "ex": "The company held a party for her retirement.",
+        "exKo": "회사는 그녀의 은퇴를 기념해 파티를 열었다."
+      },
+      {
+        "cat": "단어",
+        "pos": "adj",
+        "word": "retired",
+        "mean": "은퇴한",
+        "ex": "The seminar is open to retired employees as well.",
+        "exKo": "그 세미나는 은퇴한 직원에게도 열려 있다."
+      }
+    ]
+  },
+  {
+    "id": 9,
+    "concept": "reservation",
+    "ko": "예약",
+    "topic": "일정/예약",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "v",
+        "word": "reserve",
+        "mean": "예약하다",
+        "ex": "I would like to reserve a table for four.",
+        "exKo": "4인용 테이블을 예약하고 싶습니다."
+      },
+      {
+        "cat": "단어",
+        "pos": "n",
+        "word": "reservation",
+        "mean": "예약",
+        "ex": "Your reservation has been confirmed for 7 p.m.",
+        "exKo": "귀하의 예약은 오후 7시로 확정되었습니다."
+      }
+    ]
+  },
+  {
+    "id": 10,
+    "concept": "confirmation",
+    "ko": "확인",
+    "topic": "일정/예약",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "v",
+        "word": "confirm",
+        "mean": "확인하다, 확정하다",
+        "ex": "Please confirm your reservation by email.",
+        "exKo": "이메일로 예약을 확인해 주세요."
+      },
+      {
+        "cat": "단어",
+        "pos": "n",
+        "word": "confirmation",
+        "mean": "확인, 확정",
+        "ex": "You will receive a confirmation once your order is shipped.",
+        "exKo": "주문이 배송되면 확인 메시지를 받게 됩니다."
+      }
+    ]
+  },
+  {
+    "id": 11,
+    "concept": "cancellation",
+    "ko": "취소",
+    "topic": "일정/예약",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "v",
+        "word": "cancel",
+        "mean": "취소하다",
+        "ex": "We had to cancel the meeting because of the storm.",
+        "exKo": "우리는 폭풍 때문에 회의를 취소해야 했다."
+      },
+      {
+        "cat": "단어",
+        "pos": "n",
+        "word": "cancellation",
+        "mean": "취소",
+        "ex": "There is no fee for cancellation within 24 hours.",
+        "exKo": "24시간 이내 취소에는 수수료가 없다."
+      }
+    ]
+  },
+  {
+    "id": 12,
+    "concept": "availability",
+    "ko": "이용 가능성",
+    "topic": "일정/예약",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "adj",
+        "word": "available",
+        "mean": "이용 가능한, 시간이 되는",
+        "ex": "The meeting room is available after 3 p.m.",
+        "exKo": "그 회의실은 오후 3시 이후에 이용 가능하다."
+      },
+      {
+        "cat": "단어",
+        "pos": "n",
+        "word": "availability",
+        "mean": "이용 가능성, 가용성",
+        "ex": "Please check the availability of the product before ordering.",
+        "exKo": "주문 전에 제품의 재고 여부를 확인해 주세요."
+      }
+    ]
+  },
+  {
+    "id": 13,
+    "concept": "delivery",
+    "ko": "배송",
+    "topic": "배송/주문",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "v",
+        "word": "deliver",
+        "mean": "배달하다, 전달하다",
+        "ex": "The package will be delivered tomorrow morning.",
+        "exKo": "소포는 내일 아침에 배달될 것이다."
+      },
+      {
+        "cat": "단어",
+        "pos": "n",
+        "word": "delivery",
+        "mean": "배송, 배달",
+        "ex": "Free delivery is available on orders over $50.",
+        "exKo": "50달러 이상 주문 시 무료 배송이 가능하다."
+      }
+    ]
+  },
+  {
+    "id": 14,
+    "concept": "order",
+    "ko": "주문",
+    "topic": "배송/주문",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "v",
+        "word": "order",
+        "mean": "주문하다",
+        "ex": "We ordered new chairs for the conference room.",
+        "exKo": "우리는 회의실용 새 의자를 주문했다."
+      },
+      {
+        "cat": "단어",
+        "pos": "n",
+        "word": "order",
+        "mean": "주문(품)",
+        "ex": "Your order will arrive within five business days.",
+        "exKo": "귀하의 주문품은 영업일 기준 5일 이내에 도착합니다."
+      }
+    ]
+  },
+  {
+    "id": 15,
+    "concept": "shipment",
+    "ko": "선적·발송",
+    "topic": "배송/주문",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "v",
+        "word": "ship",
+        "mean": "발송하다, 배송하다",
+        "ex": "We ship to over 30 countries worldwide.",
+        "exKo": "우리는 전 세계 30개국 이상으로 배송한다."
+      },
+      {
+        "cat": "단어",
+        "pos": "n",
+        "word": "shipment",
+        "mean": "발송(품), 수송",
+        "ex": "The latest shipment has not arrived yet.",
+        "exKo": "최근 발송품이 아직 도착하지 않았다."
+      },
+      {
+        "cat": "단어",
+        "pos": "n",
+        "word": "shipping",
+        "mean": "배송(비), 운송",
+        "ex": "Shipping costs are calculated at checkout.",
+        "exKo": "배송비는 결제 단계에서 계산된다."
+      }
+    ]
+  },
+  {
+    "id": 16,
+    "concept": "return",
+    "ko": "반품·반납",
+    "topic": "배송/주문",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "v",
+        "word": "return",
+        "mean": "반품하다, 반납하다, 돌려주다",
+        "ex": "You can return the item within 14 days.",
+        "exKo": "그 상품은 14일 이내에 반품할 수 있다."
+      },
+      {
+        "cat": "단어",
+        "pos": "n",
+        "word": "return",
+        "mean": "반품, 반납",
+        "ex": "Returns are accepted only with a receipt.",
+        "exKo": "반품은 영수증이 있어야만 받아들여진다."
+      }
+    ]
+  },
+  {
+    "id": 17,
+    "concept": "advertisement",
+    "ko": "광고",
+    "topic": "광고/마케팅",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "v",
+        "word": "advertise",
+        "mean": "광고하다",
+        "ex": "The company advertised the new model on television.",
+        "exKo": "그 회사는 텔레비전에 새 모델을 광고했다."
+      },
+      {
+        "cat": "단어",
+        "pos": "n",
+        "word": "advertisement",
+        "mean": "광고",
+        "ex": "I saw their advertisement in the newspaper.",
+        "exKo": "나는 신문에서 그들의 광고를 봤다."
+      },
+      {
+        "cat": "단어",
+        "pos": "n",
+        "word": "advertising",
+        "mean": "광고(업), 광고 활동",
+        "ex": "The company spends a lot on online advertising.",
+        "exKo": "그 회사는 온라인 광고에 많은 돈을 쓴다."
+      }
+    ]
+  },
+  {
+    "id": 18,
+    "concept": "product",
+    "ko": "제품·생산",
+    "topic": "광고/마케팅",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "v",
+        "word": "produce",
+        "mean": "생산하다",
+        "ex": "The plant produces over a thousand cars each day.",
+        "exKo": "그 공장은 매일 천 대가 넘는 자동차를 생산한다."
+      },
+      {
+        "cat": "단어",
+        "pos": "n",
+        "word": "product",
+        "mean": "제품",
+        "ex": "Our newest product will be available next month.",
+        "exKo": "우리의 최신 제품은 다음 달에 구매할 수 있다."
+      },
+      {
+        "cat": "단어",
+        "pos": "n",
+        "word": "production",
+        "mean": "생산",
+        "ex": "Production was delayed because of a parts shortage.",
+        "exKo": "부품 부족으로 생산이 지연되었다."
+      },
+      {
+        "cat": "단어",
+        "pos": "adj",
+        "word": "productive",
+        "mean": "생산적인",
+        "ex": "We had a very productive meeting this morning.",
+        "exKo": "오늘 아침 우리는 매우 생산적인 회의를 했다."
+      }
+    ]
+  }
+]

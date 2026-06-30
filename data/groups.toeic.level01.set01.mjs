@@ -421,6 +421,7 @@ export const TOEIC_LEVEL01_SET01_GROUPS = [
         "pos": "동사",
         "word": "agree",
         "mean": "동의하다, 합의하다",
+        "ttsMeanOverride": "동의하다. 합의하다.",
         "ex": "Both companies agreed on the new terms.",
         "exKo": "두 회사는 새 조건에 합의했다."
       },

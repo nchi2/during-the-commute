@@ -45,8 +45,9 @@ import {
   preloadWordSequence,
   reclaimAudioSession,
   setAudioSubdirForLevel,
-  setAudioSubdirForMomLevel,
+  setAudioSubdirForLifeSentenceLevel,
   setAudioSubdirForToeicLevel,
+  setAudioGroups,
   skipsExamplePhase,
   speakEnglishExample,
   speakEnglishExampleNow,
@@ -67,16 +68,16 @@ import {
 } from "@/lib/media-session";
 import { GROUPS } from "@/data/groups.mjs";
 import {
-  getMomLevel,
-  getMomLevels,
-  getMomStudyItems,
+  getLifeSentenceLevel,
+  getLifeSentenceLevels,
+  getLifeSentenceStudyItems,
   getToeicLevel,
   getToeicLevels,
   getToeicSet,
   isSimpleListenLevel,
-  MOM_LEVEL01_WORD_COUNT,
+  LIFE_SENTENCE_LEVEL01_WORD_COUNT,
   TOEIC_LEVEL01_WORD_COUNT,
-  type MomLevelId,
+  type LifeSentenceLevelId,
   type ToeicLevelId,
 } from "@/lib/word-data";
 import { buildWordCatalog, getWordCatalog, resolveWordIds } from "@/lib/playlists";
@@ -163,12 +164,6 @@ const LEVEL_CATEGORIES: LevelCategory[] = [
         desc: `Level 1 · ${TOEIC_LEVEL01_WORD_COUNT}단어~`,
         active: true,
       },
-      {
-        id: "toeic-750",
-        label: "토익 750",
-        desc: "목표 점수별 단어",
-        active: false,
-      },
     ],
   },
   {
@@ -183,8 +178,8 @@ const LEVEL_CATEGORIES: LevelCategory[] = [
       },
       {
         id: "eomuni",
-        label: "어무니",
-        desc: `문장노트 · ${MOM_LEVEL01_WORD_COUNT}문장~`,
+        label: "생활 문장",
+        desc: `생활 문장 · ${LIFE_SENTENCE_LEVEL01_WORD_COUNT}문장~`,
         active: true,
       },
     ],
@@ -195,10 +190,9 @@ const LEVEL_LABEL: Record<LevelId, string> = {
   basic: "기초",
   intermediate: "중급",
   advanced: "고급",
-  "toeic-750": "토익 750",
   toeic: "토익",
   namjeonghyeon: "남정현",
-  eomuni: "어무니",
+  eomuni: "생활 문장",
 };
 
 function findLevelEntry(id: LevelId): LevelEntry | undefined {
@@ -223,8 +217,11 @@ export default function EnglishStudyApp() {
   const [level, setLevel] = useState<LevelId | null>(null);
   const [levelReady, setLevelReady] = useState(false);
   const [levelToast, setLevelToast] = useState<string | null>(null);
-  const [momLevel, setMomLevel] = useState<MomLevelId | null>(null);
-  const [momToast, setMomToast] = useState<string | null>(null);
+  const [lifeSentenceLevel, setLifeSentenceLevel] =
+    useState<LifeSentenceLevelId | null>(null);
+  const [lifeSentenceToast, setLifeSentenceToast] = useState<string | null>(
+    null,
+  );
   const [toeicLevel, setToeicLevel] = useState<ToeicLevelId | null>(null);
   const [toeicSet, setToeicSet] = useState<string | null>(null);
   const [toeicToast, setToeicToast] = useState<string | null>(null);
@@ -276,10 +273,10 @@ export default function EnglishStudyApp() {
       setLevel(saved);
       if (saved === "eomuni") {
         const savedMom = loadSelectedMomLevel();
-        const entry = savedMom ? getMomLevel(savedMom) : undefined;
+        const entry = savedMom ? getLifeSentenceLevel(savedMom) : undefined;
         if (savedMom && entry?.active) {
-          setMomLevel(savedMom as MomLevelId);
-          setAudioSubdirForMomLevel(savedMom);
+          setLifeSentenceLevel(savedMom as LifeSentenceLevelId);
+          setAudioSubdirForLifeSentenceLevel(savedMom);
         }
       } else if (saved === "toeic") {
         const savedToeicLevel = loadSelectedToeicLevel();
@@ -306,14 +303,24 @@ export default function EnglishStudyApp() {
   }, []);
 
   useEffect(() => {
-    if (level === "eomuni" && momLevel) {
-      setAudioSubdirForMomLevel(momLevel);
+    if (level === "eomuni" && lifeSentenceLevel) {
+      setAudioSubdirForLifeSentenceLevel(lifeSentenceLevel);
+      setAudioGroups(null);
     } else if (level === "toeic" && toeicLevel) {
       setAudioSubdirForToeicLevel(toeicLevel);
+      if (toeicSet) {
+        const set = getToeicSet(toeicLevel, toeicSet);
+        setAudioGroups(set?.groups ?? null);
+      } else {
+        setAudioGroups(null);
+      }
     } else if (level && level !== "eomuni" && level !== "toeic") {
       setAudioSubdirForLevel(level);
+      setAudioGroups(null);
+    } else {
+      setAudioGroups(null);
     }
-  }, [level, momLevel, toeicLevel]);
+  }, [level, lifeSentenceLevel, toeicLevel, toeicSet]);
 
   const handleSelectLevel = (id: LevelId, active: boolean) => {
     if (!active) {
@@ -328,7 +335,7 @@ export default function EnglishStudyApp() {
     setTab("study");
     setPlaylistSession(null);
     if (id === "eomuni") {
-      setMomLevel(null);
+      setLifeSentenceLevel(null);
       saveSelectedMomLevel(null);
       setToeicLevel(null);
       setToeicSet(null);
@@ -336,7 +343,7 @@ export default function EnglishStudyApp() {
       saveSelectedToeicSet(null);
       setSelected(new Set());
     } else if (id === "toeic") {
-      setMomLevel(null);
+      setLifeSentenceLevel(null);
       saveSelectedMomLevel(null);
       setToeicLevel(null);
       setToeicSet(null);
@@ -345,7 +352,7 @@ export default function EnglishStudyApp() {
       setStarted(false);
       setSelected(new Set());
     } else {
-      setMomLevel(null);
+      setLifeSentenceLevel(null);
       saveSelectedMomLevel(null);
       setToeicLevel(null);
       setToeicSet(null);
@@ -357,16 +364,19 @@ export default function EnglishStudyApp() {
     }
   };
 
-  const handleSelectMomLevel = (id: MomLevelId, active: boolean) => {
+  const handleSelectLifeSentenceLevel = (
+    id: LifeSentenceLevelId,
+    active: boolean,
+  ) => {
     if (!active) {
-      setMomToast("준비 중입니다");
-      setTimeout(() => setMomToast(null), 2500);
+      setLifeSentenceToast("준비 중입니다");
+      setTimeout(() => setLifeSentenceToast(null), 2500);
       return;
     }
     cancelPlayback();
-    setMomLevel(id);
+    setLifeSentenceLevel(id);
     saveSelectedMomLevel(id);
-    setAudioSubdirForMomLevel(id);
+    setAudioSubdirForLifeSentenceLevel(id);
   };
 
   const handleSelectToeicLevel = (id: ToeicLevelId, active: boolean) => {
@@ -420,9 +430,9 @@ export default function EnglishStudyApp() {
     setPlaylistSession(null);
   };
 
-  const handleMomLevelBack = () => {
+  const handleLifeSentenceLevelBack = () => {
     cancelPlayback();
-    setMomLevel(null);
+    setLifeSentenceLevel(null);
     saveSelectedMomLevel(null);
   };
 
@@ -433,7 +443,7 @@ export default function EnglishStudyApp() {
     setTab("study");
     setStarted(false);
     setSelected(new Set());
-    setMomLevel(null);
+    setLifeSentenceLevel(null);
     saveSelectedMomLevel(null);
     setToeicLevel(null);
     setToeicSet(null);
@@ -452,7 +462,7 @@ export default function EnglishStudyApp() {
     setTab("study");
     setStarted(false);
     setSelected(new Set());
-    setMomLevel(null);
+    setLifeSentenceLevel(null);
     saveSelectedMomLevel(null);
     setToeicLevel(null);
     setToeicSet(null);
@@ -464,10 +474,10 @@ export default function EnglishStudyApp() {
     setPlaylistReset((n) => n + 1);
   };
 
-  const momItems = useMemo(() => {
-    if (!momLevel) return [];
-    return getMomStudyItems(momLevel);
-  }, [momLevel]);
+  const lifeSentenceItems = useMemo(() => {
+    if (!lifeSentenceLevel) return [];
+    return getLifeSentenceStudyItems(lifeSentenceLevel);
+  }, [lifeSentenceLevel]);
 
   const toeicCatalog = useMemo(() => {
     if (!toeicLevel || !toeicSet) return null;
@@ -501,10 +511,10 @@ export default function EnglishStudyApp() {
     );
   }
 
-  const isMomMode = isSimpleListenLevel(level);
+  const isLifeSentenceMode = isSimpleListenLevel(level);
   const isToeicMode = level === "toeic";
   const showStudyTabs =
-    !isMomMode && !(isToeicMode && (!toeicLevel || !toeicSet));
+    !isLifeSentenceMode && !(isToeicMode && (!toeicLevel || !toeicSet));
 
   return (
     <div
@@ -609,10 +619,10 @@ export default function EnglishStudyApp() {
                 }}
               >
                 {LEVEL_LABEL[level]}
-                {isMomMode && momLevel && (
+                {isLifeSentenceMode && lifeSentenceLevel && (
                   <span style={{ color: C.muted, fontWeight: 500 }}>
                     {" "}
-                    · {getMomLevel(momLevel)?.label}
+                    · {getLifeSentenceLevel(lifeSentenceLevel)?.label}
                   </span>
                 )}
                 {isToeicMode && toeicLevel && (
@@ -656,7 +666,7 @@ export default function EnglishStudyApp() {
                   cursor: "pointer",
                 }}
               >
-                {isMomMode ? "문장노트 변경" : isToeicMode ? "토익 변경" : "단어장 변경"}
+                {isLifeSentenceMode ? "생활 문장 변경" : isToeicMode ? "토익 변경" : "단어장 변경"}
               </button>
             </div>
           </div>
@@ -742,7 +752,7 @@ export default function EnglishStudyApp() {
         {showSettings ? (
           <SettingsScreen
             onBack={closeSettings}
-            hideExampleSettings={isMomMode}
+            hideExampleSettings={isLifeSentenceMode}
           />
         ) : isToeicMode ? (
           !toeicLevel ? (
@@ -854,17 +864,17 @@ export default function EnglishStudyApp() {
               )}
             </>
           )
-        ) : isMomMode ? (
-          momLevel ? (
+        ) : isLifeSentenceMode ? (
+          lifeSentenceLevel ? (
             <StudyView
-              items={momItems}
-              onBack={handleMomLevelBack}
+              items={lifeSentenceItems}
+              onBack={handleLifeSentenceLevelBack}
               backLabel="레벨"
             />
           ) : (
-            <MomLevelSelectScreen
-              toast={momToast}
-              onSelect={handleSelectMomLevel}
+            <LifeSentenceLevelSelectScreen
+              toast={lifeSentenceToast}
+              onSelect={handleSelectLifeSentenceLevel}
               onBack={handleChangeLevel}
             />
           )
@@ -1132,16 +1142,16 @@ function LevelSelectScreen({
   );
 }
 
-function MomLevelSelectScreen({
+function LifeSentenceLevelSelectScreen({
   toast,
   onSelect,
   onBack,
 }: {
   toast: string | null;
-  onSelect: (id: MomLevelId, active: boolean) => void;
+  onSelect: (id: LifeSentenceLevelId, active: boolean) => void;
   onBack: () => void;
 }) {
-  const levels = getMomLevels();
+  const levels = getLifeSentenceLevels();
 
   return (
     <div
@@ -1169,7 +1179,7 @@ function MomLevelSelectScreen({
           padding: 0,
         }}
       >
-        <ChevronLeft size={18} /> 문장노트 선택
+        <ChevronLeft size={18} /> 레벨 선택
       </button>
 
       <h2
@@ -1179,7 +1189,7 @@ function MomLevelSelectScreen({
           fontWeight: 800,
         }}
       >
-        어무니 문장노트
+        생활 문장
       </h2>
       <p style={{ margin: "0 0 20px", fontSize: 14, color: C.muted }}>
         레벨을 골라 문장을 들어보세요
@@ -1195,7 +1205,7 @@ function MomLevelSelectScreen({
             <button
               key={entry.id}
               type="button"
-              onClick={() => onSelect(entry.id as MomLevelId, entry.active)}
+              onClick={() => onSelect(entry.id as LifeSentenceLevelId, entry.active)}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -1499,7 +1509,15 @@ function ToeicSetSelectScreen({
               }}
             >
               <div>
-                <div style={{ fontSize: 17, fontWeight: 700 }}>{entry.label}</div>
+                <div style={{ fontSize: 17, fontWeight: 700 }}>
+                  {entry.label}
+                  {entry.description ? (
+                    <span style={{ fontWeight: 500, color: C.muted }}>
+                      {" "}
+                      ({entry.description})
+                    </span>
+                  ) : null}
+                </div>
                 <div
                   style={{
                     fontSize: 13,
@@ -2134,29 +2152,41 @@ function StudyView({
 
   const playItem = async (w: StudyItem, i: number): Promise<boolean> => {
     const settings = loadPlaybackSettings();
+    const { playWord, playMean, playExample } = settings;
+    const playExPhase = playExample && !skipExample;
+    const playWordPhase = playWord || playMean;
     const next = items[i + 1];
     if (next) preloadWordAudio(next.word, next.pos);
 
     if (!playingRef.current) return false;
     setIndex(i);
-    setPhase("word");
+    setPhase(playWordPhase ? "word" : "example");
     preloadWordAudio(w.word, w.pos);
 
-    for (let r = 0; r < settings.wordRepeatCount; r++) {
-      if (!playingRef.current) return false;
-      preloadWordSequence(w.word, "word", w.pos);
-      await speakEnglishWord(w.word, w.pos);
-      if (!playingRef.current) return false;
-      await wait(settings.gapSec * 1000);
-      preloadWordSequence(w.word, "mean", w.pos);
-      await speakKoreanMean(w.word, w.mean, w.pos);
-      if (r < settings.wordRepeatCount - 1) {
+    if (playWordPhase) {
+      for (let r = 0; r < settings.wordRepeatCount; r++) {
         if (!playingRef.current) return false;
-        await wait(settings.setGapSec * 1000);
+
+        if (playWord) {
+          preloadWordSequence(w.word, "word", w.pos);
+          await speakEnglishWord(w.word, w.pos);
+          if (!playingRef.current) return false;
+          await wait(settings.gapSec * 1000);
+        }
+
+        if (playMean) {
+          preloadWordSequence(w.word, "mean", w.pos);
+          await speakKoreanMean(w.word, w.mean, w.pos);
+        }
+
+        if (r < settings.wordRepeatCount - 1) {
+          if (!playingRef.current) return false;
+          await wait(settings.setGapSec * 1000);
+        }
       }
     }
 
-    if (!skipExample) {
+    if (playExPhase) {
       if (!playingRef.current) return false;
       setPhase("example");
 

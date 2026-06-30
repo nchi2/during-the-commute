@@ -4,7 +4,6 @@ export type LevelId =
   | "basic"
   | "intermediate"
   | "advanced"
-  | "toeic-750"
   | "toeic"
   | "namjeonghyeon"
   | "eomuni";
@@ -22,6 +21,9 @@ export type PlaybackSettings = {
   itemGapEnabled: boolean;
   itemGapSec: number;
   playbackRate: EnglishPlaybackRate;
+  playWord: boolean;
+  playMean: boolean;
+  playExample: boolean;
 };
 
 const ACTIVE_LEVELS: LevelId[] = ["namjeonghyeon", "eomuni", "toeic"];
@@ -30,7 +32,6 @@ const ALL_LEVEL_IDS: LevelId[] = [
   "basic",
   "intermediate",
   "advanced",
-  "toeic-750",
   "toeic",
   "namjeonghyeon",
   "eomuni",
@@ -58,6 +59,9 @@ export const PLAYBACK_DEFAULTS: PlaybackSettings = {
   itemGapEnabled: true,
   itemGapSec: 0.7,
   playbackRate: 1,
+  playWord: true,
+  playMean: true,
+  playExample: true,
 };
 
 const ENGLISH_PLAYBACK_RATES: EnglishPlaybackRate[] = [0.8, 1, 1.25];
@@ -94,6 +98,29 @@ function clampInt(n: number, min: number, max: number): number {
   return clamp(Math.round(n), min, max);
 }
 
+function normalizeContentToggles(
+  raw: Partial<PlaybackSettings>,
+): Pick<PlaybackSettings, "playWord" | "playMean" | "playExample"> {
+  const playWord =
+    typeof raw.playWord === "boolean" ? raw.playWord : PLAYBACK_DEFAULTS.playWord;
+  const playMean =
+    typeof raw.playMean === "boolean" ? raw.playMean : PLAYBACK_DEFAULTS.playMean;
+  const playExample =
+    typeof raw.playExample === "boolean"
+      ? raw.playExample
+      : PLAYBACK_DEFAULTS.playExample;
+
+  if (!playWord && !playMean && !playExample) {
+    return {
+      playWord: PLAYBACK_DEFAULTS.playWord,
+      playMean: PLAYBACK_DEFAULTS.playMean,
+      playExample: PLAYBACK_DEFAULTS.playExample,
+    };
+  }
+
+  return { playWord, playMean, playExample };
+}
+
 function normalizePlayback(raw: Partial<StoredSettings>): PlaybackSettings {
   return {
     gapSec:
@@ -122,6 +149,7 @@ function normalizePlayback(raw: Partial<StoredSettings>): PlaybackSettings {
         ? clamp(raw.itemGapSec, 0.3, 1.5)
         : PLAYBACK_DEFAULTS.itemGapSec,
     playbackRate: normalizeEnglishPlaybackRate(raw.playbackRate),
+    ...normalizeContentToggles(raw),
   };
 }
 
@@ -169,6 +197,9 @@ export function loadPlaybackSettings(): PlaybackSettings {
     itemGapEnabled,
     itemGapSec,
     playbackRate,
+    playWord,
+    playMean,
+    playExample,
   } = load();
   return {
     gapSec,
@@ -179,6 +210,9 @@ export function loadPlaybackSettings(): PlaybackSettings {
     itemGapEnabled,
     itemGapSec,
     playbackRate,
+    playWord,
+    playMean,
+    playExample,
   };
 }
 

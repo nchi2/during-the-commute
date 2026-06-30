@@ -1,5 +1,5 @@
 /**
- * toeic_level2_set1|set2.json → data/groups.toeic.level02.set01|set02.mjs 변환
+ * toeic_level2_setN.json → data/groups.toeic.level02.setNN.mjs 변환
  *
  * 실행:
  *   node scripts/convert-toeic-level02.mjs
@@ -18,11 +18,15 @@ const POS_BASE = {
   n: "명사",
   adj: "형용사",
   adv: "부사",
+  prep: "전치사",
 };
 
-/** njh 패턴: cat 연결 → pos 연결, cat 표현 + phrase → pos 표현 */
+/** njh 패턴: cat 연결 → pos 연결(단, prep는 전치사), cat 표현 + phrase → pos 표현 */
 function mapPos(cat, posAbbr) {
-  if (cat === "연결") return "연결";
+  if (cat === "연결") {
+    if (posAbbr === "prep") return "전치사";
+    return "연결";
+  }
   if (cat === "표현" && posAbbr === "phrase") return "표현";
   if (posAbbr === "phrase") return "표현";
   return POS_BASE[posAbbr] ?? posAbbr;
@@ -70,23 +74,23 @@ export const ${exportName} = ${JSON.stringify(groups, null, 2)};
   console.log(`  ${groups.length} groups, ${wordCount} words`);
 }
 
-const set01Raw = JSON.parse(
-  readFileSync(join(sourcesDir, "toeic_level2_set1.json"), "utf8"),
-);
-const set02Raw = JSON.parse(
-  readFileSync(join(sourcesDir, "toeic_level2_set2.json"), "utf8"),
-);
+const SETS = [
+  { source: "toeic_level2_set1.json", setLabel: "set01", export: "TOEIC_LEVEL02_SET01_GROUPS" },
+  { source: "toeic_level2_set2.json", setLabel: "set02", export: "TOEIC_LEVEL02_SET02_GROUPS" },
+  { source: "toeic_level2_set3.json", setLabel: "set03", export: "TOEIC_LEVEL02_SET03_GROUPS" },
+  { source: "toeic_level2_set4.json", setLabel: "set04", export: "TOEIC_LEVEL02_SET04_GROUPS" },
+  { source: "toeic_level2_set5.json", setLabel: "set05", export: "TOEIC_LEVEL02_SET05_GROUPS" },
+  { source: "toeic_level2_set6.json", setLabel: "set06", export: "TOEIC_LEVEL02_SET06_GROUPS" },
+  { source: "toeic_level2_set7.json", setLabel: "set07", export: "TOEIC_LEVEL02_SET07_GROUPS" },
+  { source: "toeic_level2_set8.json", setLabel: "set08", export: "TOEIC_LEVEL02_SET08_GROUPS" },
+];
 
-writeSetFile({
-  exportName: "TOEIC_LEVEL02_SET01_GROUPS",
-  setLabel: "set01",
-  sourceFile: "toeic_level2_set1.json",
-  groups: set01Raw.map(convertGroup),
-});
-
-writeSetFile({
-  exportName: "TOEIC_LEVEL02_SET02_GROUPS",
-  setLabel: "set02",
-  sourceFile: "toeic_level2_set2.json",
-  groups: set02Raw.map(convertGroup),
-});
+for (const { source, setLabel, export: exportName } of SETS) {
+  const raw = JSON.parse(readFileSync(join(sourcesDir, source), "utf8"));
+  writeSetFile({
+    exportName,
+    setLabel,
+    sourceFile: source,
+    groups: raw.map(convertGroup),
+  });
+}

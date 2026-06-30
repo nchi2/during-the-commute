@@ -7,29 +7,33 @@
  *
  * 데이터셋 (DATASET 환경변수, 기본값 GROUPS):
  *   GROUPS     — data/groups.mjs (영어 단어장, 기본)
- *   mom        — data/groups.mom.mjs (어무니 생활 문장)
+ *   life-sentences — data/groups.life-sentences.mjs (생활 문장)
  *   toeic      — data/groups.toeic.mjs (토익 Level·Set)
  *
  * 테스트 (첫 항목 1~2개):
  *   TEST_ONLY=1 node --env-file=.env scripts/generate-audio.mjs
- *   DATASET=mom TEST_ONLY=1 node --env-file=.env scripts/generate-audio.mjs
+ *   DATASET=life-sentences TEST_ONLY=1 node --env-file=.env scripts/generate-audio.mjs
  *   DATASET=toeic LEVEL=1 TEST_ONLY=1 node --env-file=.env scripts/generate-audio.mjs
  *
  * 전체 생성:
  *   node --env-file=.env scripts/generate-audio.mjs
- *   DATASET=mom MOM_LEVEL=level01 node --env-file=.env scripts/generate-audio.mjs
- *     → public/audio/mom/level01/
+ *   DATASET=life-sentences LIFE_SENTENCE_LEVEL=level01 node --env-file=.env scripts/generate-audio.mjs
+ *     → public/audio/life-sentences/level01/
  *   DATASET=toeic LEVEL=1 SET=set01 node --env-file=.env scripts/generate-audio.mjs
  *     → public/audio/toeic/level01/
  *   DATASET=toeic LEVEL=2 SET=set01 GROUP_ID=30 node --env-file=.env scripts/generate-audio.mjs
  *     → 특정 그룹만 생성 (예: affect/effect 그룹)
+ *
+ * 단어별 TTS 텍스트 재정의 (선택):
+ *   words[].ttsMeanOverride — mean mp3용 (없으면 mean + prepareTtsText)
+ *   words[].ttsExKoOverride — exKo mp3용
  */
 
 import { writeFileSync, existsSync, mkdirSync, copyFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { GROUPS } from "../data/groups.mjs";
-import { MOM_LEVELS } from "../data/groups.mom.mjs";
+import { LIFE_SENTENCE_LEVELS } from "../data/groups.life-sentences.mjs";
 import { TOEIC_LEVELS } from "../data/groups.toeic.mjs";
 import { audioFileBase } from "../lib/audio-filename.mjs";
 import { getAudioSubdirForDataset } from "../lib/audio-paths.mjs";
@@ -46,13 +50,14 @@ const VOICES = {
   ko: { languageCode: "ko-KR", name: "ko-KR-Chirp3-HD-Charon" },
 };
 
-const VOICES_MOM = {
+const VOICES_LIFE_SENTENCES = {
   en: { languageCode: "en-US", name: "en-US-Chirp3-HD-Leda" },
   ko: { languageCode: "ko-KR", name: "ko-KR-Chirp3-HD-Leda" },
 };
 
 const dataset = (process.env.DATASET || "default").toLowerCase();
-const isMom = dataset === "mom";
+const isLifeSentences =
+  dataset === "life-sentences" || dataset === "mom";
 const isToeic = dataset === "toeic";
 
 function normalizeToeicLevelId(raw) {
@@ -63,26 +68,32 @@ function normalizeToeicLevelId(raw) {
   if (value === "2" || value === "02" || value === "level02" || value === "level2") {
     return "level02";
   }
+  if (value === "3" || value === "03" || value === "level03" || value === "level3") {
+    return "level03";
+  }
   if (value.startsWith("level")) return value;
   return `level${value.padStart(2, "0")}`;
 }
 
-const momLevelId = process.env.MOM_LEVEL || "level01";
+const lifeSentenceLevelId =
+  process.env.LIFE_SENTENCE_LEVEL || process.env.MOM_LEVEL || "level01";
 const toeicLevelId = normalizeToeicLevelId(
   process.env.TOEIC_LEVEL || process.env.LEVEL || "1",
 );
 const toeicSetId = process.env.TOEIC_SET || process.env.SET || null;
-const momEntry = isMom ? MOM_LEVELS.find((l) => l.id === momLevelId) : null;
+const lifeSentenceEntry = isLifeSentences
+  ? LIFE_SENTENCE_LEVELS.find((l) => l.id === lifeSentenceLevelId)
+  : null;
 const toeicEntry = isToeic ? TOEIC_LEVELS.find((l) => l.id === toeicLevelId) : null;
 
 let groups;
 let datasetLabel;
 let audioLevelId;
 
-if (isMom) {
-  groups = momEntry?.groups ?? [];
-  datasetLabel = `MOM ${momLevelId}`;
-  audioLevelId = momLevelId;
+if (isLifeSentences) {
+  groups = lifeSentenceEntry?.groups ?? [];
+  datasetLabel = `생활 문장 ${lifeSentenceLevelId}`;
+  audioLevelId = lifeSentenceLevelId;
 } else if (isToeic) {
   if (!toeicEntry) {
     console.error(`알 수 없는 TOEIC LEVEL: ${process.env.LEVEL ?? process.env.TOEIC_LEVEL}`);
@@ -128,11 +139,13 @@ if (groupIdFilter) {
 
 const AUDIO_SUBDIR = getAudioSubdirForDataset(dataset, audioLevelId);
 const AUDIO_DIR = join(AUDIO_ROOT, AUDIO_SUBDIR);
-const voices = isMom ? VOICES_MOM : VOICES;
+const voices = isLifeSentences ? VOICES_LIFE_SENTENCES : VOICES;
 
-if (isMom && !momEntry) {
-  console.error(`알 수 없는 MOM_LEVEL: ${momLevelId}`);
-  console.error(`  사용 가능: ${MOM_LEVELS.map((l) => l.id).join(", ")}`);
+if (isLifeSentences && !lifeSentenceEntry) {
+  console.error(`알 수 없는 LIFE_SENTENCE_LEVEL: ${lifeSentenceLevelId}`);
+  console.error(
+    `  사용 가능: ${LIFE_SENTENCE_LEVELS.map((l) => l.id).join(", ")}`,
+  );
   process.exit(1);
 }
 
@@ -160,10 +173,11 @@ async function synthesize(text, voice, apiKey) {
   return Buffer.from(audioContent, "base64");
 }
 
-async function saveMp3(text, filename, wordLabel, apiKey, voice, lang, field) {
+async function saveMp3(text, filename, wordLabel, apiKey, voice, lang, field, textOverride) {
   const filePath = join(AUDIO_DIR, filename);
   const ttsLang = lang === "en" ? "en" : "ko";
-  const ttsText = prepareTtsText(text, { lang: ttsLang, field });
+  const sourceText = textOverride ?? text;
+  const ttsText = prepareTtsText(sourceText, { lang: ttsLang, field });
 
   if (existsSync(filePath)) {
     console.log(`- ${filename} [${lang}] 이미 존재 — 건너뜀`);
@@ -205,17 +219,21 @@ function copyMp3(srcFilename, destFilename, wordLabel) {
   console.log(`✓ ${destFilename} ← ${srcFilename} 복사됨`);
 }
 
-async function generateMomWord({ word, mean, pos }, apiKey, { includeEnglish }) {
+async function generateLifeSentenceWord({ word, mean, pos, ttsMeanOverride }, apiKey, { includeEnglish }) {
   const base = audioFileBase(word, pos, groups);
 
   if (includeEnglish) {
     await saveMp3(word, `${base}.mp3`, word, apiKey, voices.en, "en", "word");
   }
 
-  await saveMp3(mean, `${base}-ko.mp3`, word, apiKey, voices.ko, "ko", "mean");
+  await saveMp3(mean, `${base}-ko.mp3`, word, apiKey, voices.ko, "ko", "mean", ttsMeanOverride);
 }
 
-async function generateDefaultWord({ word, ex, mean, exKo, pos }, apiKey, { includeEnglish }) {
+async function generateDefaultWord(
+  { word, ex, mean, exKo, pos, ttsMeanOverride, ttsExKoOverride },
+  apiKey,
+  { includeEnglish },
+) {
   const base = audioFileBase(word, pos, groups);
 
   if (includeEnglish) {
@@ -223,8 +241,17 @@ async function generateDefaultWord({ word, ex, mean, exKo, pos }, apiKey, { incl
     await saveMp3(ex, `${base}-ex.mp3`, word, apiKey, voices.en, "en", "ex");
   }
 
-  await saveMp3(mean, `${base}-ko.mp3`, word, apiKey, voices.ko, "ko", "mean");
-  await saveMp3(exKo, `${base}-exko.mp3`, word, apiKey, voices.ko, "ko", "exKo");
+  await saveMp3(mean, `${base}-ko.mp3`, word, apiKey, voices.ko, "ko", "mean", ttsMeanOverride);
+  await saveMp3(
+    exKo,
+    `${base}-exko.mp3`,
+    word,
+    apiKey,
+    voices.ko,
+    "ko",
+    "exKo",
+    ttsExKoOverride,
+  );
 }
 
 const apiKey = process.env.GOOGLE_TTS_KEY;
@@ -243,7 +270,7 @@ mkdirSync(AUDIO_DIR, { recursive: true });
 const allWords = groups.flatMap((g) => g.words);
 const testLimit = testOnly && !onlyGroup ? (isToeic ? 2 : 1) : allWords.length;
 const words = allWords.slice(0, testLimit);
-const includeEnglish = !testOnly || isMom || isToeic || onlyGroup;
+const includeEnglish = !testOnly || isLifeSentences || isToeic || onlyGroup;
 
 if (onlyGroup) {
   console.log(
@@ -253,14 +280,14 @@ if (onlyGroup) {
   console.log(
     `TEST_ONLY [${datasetLabel}] → audio/${AUDIO_SUBDIR}/: 첫 ${words.length}개 항목 (${words[0]?.word?.slice(0, 40)}…)`,
   );
-  if (isMom) {
+  if (isLifeSentences) {
     console.log("  → 영어 1 + 한국어 1 TTS");
   } else if (isToeic) {
     console.log("  → 영어 2 + 한국어 2 TTS × 항목 (word/ex/mean/exKo)");
   } else {
     console.log("  → 한국어 2개 mp3만 생성");
   }
-} else if (isMom) {
+} else if (isLifeSentences) {
   console.log(
     `전체 ${words.length}개 문장 × 2 TTS (${datasetLabel}) → audio/${AUDIO_SUBDIR}/`,
   );
@@ -271,8 +298,8 @@ if (onlyGroup) {
 }
 
 for (const entry of words) {
-  if (isMom) {
-    await generateMomWord(entry, apiKey, { includeEnglish });
+  if (isLifeSentences) {
+    await generateLifeSentenceWord(entry, apiKey, { includeEnglish });
   } else {
     await generateDefaultWord(entry, apiKey, { includeEnglish });
   }
@@ -280,8 +307,10 @@ for (const entry of words) {
 
 if (testOnly) {
   console.log("\n테스트 완료. 전체 생성:");
-  if (isMom) {
-    console.log("  DATASET=mom MOM_LEVEL=level01 node --env-file=.env scripts/generate-audio.mjs");
+  if (isLifeSentences) {
+    console.log(
+      "  DATASET=life-sentences LIFE_SENTENCE_LEVEL=level01 node --env-file=.env scripts/generate-audio.mjs",
+    );
   } else if (isToeic) {
     const setArg = toeicSetId ? ` TOEIC_SET=${toeicSetId}` : "";
     console.log(

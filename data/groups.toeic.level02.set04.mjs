@@ -1,0 +1,677 @@
+// 토익 Level 2 Set 04 (25개 그룹, 59개 항목)
+// 원본: data/sources/toeic_level2_set4.json
+// topic: 추후 주제별 필터용 (화면 미연결)
+export const TOEIC_LEVEL02_SET04_GROUPS = [
+  {
+    "id": 1,
+    "concept": "deposit",
+    "ko": "예치·보증금",
+    "topic": "재무/회계",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "동사",
+        "word": "deposit",
+        "mean": "예치하다, 입금하다",
+        "ex": "Please deposit the check into the company account.",
+        "exKo": "그 수표를 회사 계좌에 입금해 주세요."
+      },
+      {
+        "cat": "단어",
+        "pos": "명사",
+        "word": "deposit",
+        "mean": "보증금, 예치금",
+        "ex": "A deposit of $200 is required to reserve the venue.",
+        "exKo": "장소를 예약하려면 200달러의 보증금이 필요하다."
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "concept": "withdrawal",
+    "ko": "인출·철회",
+    "topic": "재무/회계",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "동사",
+        "word": "withdraw",
+        "mean": "인출하다, 철회하다",
+        "ex": "She withdrew her application after finding another job.",
+        "exKo": "그녀는 다른 일자리를 구한 뒤 지원을 철회했다."
+      },
+      {
+        "cat": "단어",
+        "pos": "명사",
+        "word": "withdrawal",
+        "mean": "인출, 철회",
+        "ex": "There is no fee for cash withdrawals at our branches.",
+        "exKo": "우리 지점에서는 현금 인출 수수료가 없다."
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "concept": "accumulation",
+    "ko": "축적",
+    "topic": "재무/회계",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "동사",
+        "word": "accumulate",
+        "mean": "축적하다, 모으다",
+        "ex": "Members accumulate points with every purchase.",
+        "exKo": "회원들은 구매할 때마다 포인트를 적립한다."
+      },
+      {
+        "cat": "단어",
+        "pos": "명사",
+        "word": "accumulation",
+        "mean": "축적, 누적",
+        "ex": "The accumulation of debt forced the firm to cut costs.",
+        "exKo": "부채의 누적으로 그 회사는 비용을 줄여야 했다."
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "concept": "compensation",
+    "ko": "보상",
+    "topic": "재무/회계",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "동사",
+        "word": "compensate",
+        "mean": "보상하다, 보충하다",
+        "ex": "The airline compensated passengers for the delay.",
+        "exKo": "그 항공사는 지연에 대해 승객들에게 보상했다."
+      },
+      {
+        "cat": "단어",
+        "pos": "명사",
+        "word": "compensation",
+        "mean": "보상(금), 보수",
+        "ex": "Employees received compensation for the extra hours.",
+        "exKo": "직원들은 초과 근무에 대한 보상을 받았다."
+      }
+    ]
+  },
+  {
+    "id": 5,
+    "concept": "delegation",
+    "ko": "위임",
+    "topic": "인사평가",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "동사",
+        "word": "delegate",
+        "mean": "위임하다, 맡기다",
+        "ex": "A good manager knows how to delegate tasks.",
+        "exKo": "훌륭한 관리자는 업무를 위임하는 법을 안다."
+      },
+      {
+        "cat": "단어",
+        "pos": "명사",
+        "word": "delegation",
+        "mean": "위임; 대표단",
+        "ex": "A delegation from the head office visited the factory.",
+        "exKo": "본사에서 온 대표단이 그 공장을 방문했다."
+      }
+    ]
+  },
+  {
+    "id": 6,
+    "concept": "nomination",
+    "ko": "지명·추천",
+    "topic": "인사평가",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "동사",
+        "word": "nominate",
+        "mean": "지명하다, 추천하다",
+        "ex": "Her colleagues nominated her for the leadership award.",
+        "exKo": "그녀의 동료들은 그녀를 리더십 상 후보로 추천했다."
+      },
+      {
+        "cat": "단어",
+        "pos": "명사",
+        "word": "nomination",
+        "mean": "지명, 추천",
+        "ex": "The nomination must be submitted by the end of the month.",
+        "exKo": "추천은 이달 말까지 제출되어야 한다."
+      },
+      {
+        "cat": "단어",
+        "pos": "명사",
+        "word": "nominee",
+        "mean": "후보자, 피지명자",
+        "ex": "All nominees will be interviewed next week.",
+        "exKo": "모든 후보자는 다음 주에 면접을 본다."
+      }
+    ]
+  },
+  {
+    "id": 7,
+    "concept": "accountability",
+    "ko": "책무",
+    "topic": "인사평가",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "형용사",
+        "word": "accountable",
+        "mean": "책임이 있는, 설명할 의무가 있는",
+        "ex": "Each manager is accountable for their team's results.",
+        "exKo": "각 관리자는 자기 팀의 성과에 책임이 있다."
+      },
+      {
+        "cat": "단어",
+        "pos": "명사",
+        "word": "accountability",
+        "mean": "책무, 책임성",
+        "ex": "The new system improves accountability across departments.",
+        "exKo": "그 새 시스템은 부서 전반의 책임성을 높인다."
+      },
+      {
+        "cat": "표현",
+        "pos": "표현",
+        "word": "be accountable for",
+        "mean": "~에 대해 책임이 있다",
+        "ex": "Supervisors are accountable for safety on the floor.",
+        "exKo": "감독자들은 작업장의 안전에 책임이 있다."
+      }
+    ]
+  },
+  {
+    "id": 8,
+    "concept": "proficiency",
+    "ko": "숙련·능숙",
+    "topic": "인사평가",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "형용사",
+        "word": "proficient",
+        "mean": "능숙한, 숙련된",
+        "ex": "The role requires someone proficient in spreadsheets.",
+        "exKo": "그 직무는 스프레드시트에 능숙한 사람을 필요로 한다."
+      },
+      {
+        "cat": "단어",
+        "pos": "명사",
+        "word": "proficiency",
+        "mean": "숙련(도), 능숙함",
+        "ex": "Applicants must demonstrate proficiency in English.",
+        "exKo": "지원자는 영어 능숙도를 입증해야 한다."
+      }
+    ]
+  },
+  {
+    "id": 9,
+    "concept": "designation",
+    "ko": "지정",
+    "topic": "인사/규정",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "동사",
+        "word": "designate",
+        "mean": "지정하다, 지명하다",
+        "ex": "The company designated a quiet area for phone calls.",
+        "exKo": "회사는 통화를 위한 조용한 구역을 지정했다."
+      },
+      {
+        "cat": "단어",
+        "pos": "형용사",
+        "word": "designated",
+        "mean": "지정된",
+        "ex": "Please park only in the designated spaces.",
+        "exKo": "지정된 자리에만 주차해 주세요."
+      },
+      {
+        "cat": "단어",
+        "pos": "명사",
+        "word": "designation",
+        "mean": "지정, 명칭",
+        "ex": "The building received a historic designation last year.",
+        "exKo": "그 건물은 작년에 역사적 건축물 지정을 받았다."
+      }
+    ]
+  },
+  {
+    "id": 10,
+    "concept": "consent",
+    "ko": "동의",
+    "topic": "법률/규정",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "동사",
+        "word": "consent",
+        "mean": "동의하다, 승낙하다",
+        "ex": "The client consented to the revised terms.",
+        "exKo": "고객은 수정된 조건에 동의했다."
+      },
+      {
+        "cat": "단어",
+        "pos": "명사",
+        "word": "consent",
+        "mean": "동의, 승낙",
+        "ex": "Written consent is needed before sharing any data.",
+        "exKo": "데이터를 공유하기 전에 서면 동의가 필요하다."
+      },
+      {
+        "cat": "표현",
+        "pos": "표현",
+        "word": "give consent",
+        "mean": "동의하다, 승낙하다",
+        "ex": "Parents must give consent for students to join the trip.",
+        "exKo": "학생들이 그 여행에 참가하려면 부모가 동의해야 한다."
+      }
+    ]
+  },
+  {
+    "id": 11,
+    "concept": "binding",
+    "ko": "구속력",
+    "topic": "법률/규정",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "동사",
+        "word": "bind",
+        "mean": "묶다, 구속하다",
+        "ex": "The agreement binds both parties to the schedule.",
+        "exKo": "그 합의는 양측을 일정에 구속한다."
+      },
+      {
+        "cat": "단어",
+        "pos": "형용사",
+        "word": "binding",
+        "mean": "구속력 있는",
+        "ex": "Once signed, the contract is legally binding.",
+        "exKo": "일단 서명하면 그 계약은 법적 구속력이 있다."
+      }
+    ]
+  },
+  {
+    "id": 12,
+    "concept": "breach",
+    "ko": "위반",
+    "topic": "법률/규정",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "동사",
+        "word": "breach",
+        "mean": "위반하다, 어기다",
+        "ex": "The supplier breached the terms of the contract.",
+        "exKo": "그 공급업체는 계약 조건을 위반했다."
+      },
+      {
+        "cat": "단어",
+        "pos": "명사",
+        "word": "breach",
+        "mean": "위반, 불이행",
+        "ex": "A data breach exposed thousands of records.",
+        "exKo": "데이터 유출(위반)로 수천 건의 기록이 노출되었다."
+      },
+      {
+        "cat": "표현",
+        "pos": "표현",
+        "word": "in breach of",
+        "mean": "~을 위반하여",
+        "ex": "The company was found to be in breach of safety rules.",
+        "exKo": "그 회사는 안전 규칙을 위반한 것으로 드러났다."
+      }
+    ]
+  },
+  {
+    "id": 13,
+    "concept": "validity",
+    "ko": "유효성",
+    "topic": "법률/규정",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "형용사",
+        "word": "valid",
+        "mean": "유효한, 타당한",
+        "ex": "Your pass is valid for one year.",
+        "exKo": "귀하의 출입증은 1년간 유효하다."
+      },
+      {
+        "cat": "단어",
+        "pos": "명사",
+        "word": "validity",
+        "mean": "유효(성), 타당성",
+        "ex": "The court questioned the validity of the agreement.",
+        "exKo": "법원은 그 합의의 유효성에 의문을 제기했다."
+      },
+      {
+        "cat": "단어",
+        "pos": "동사",
+        "word": "validate",
+        "mean": "유효성을 입증하다, 인증하다",
+        "ex": "Please validate your parking ticket at the front desk.",
+        "exKo": "안내 데스크에서 주차권을 인증받으세요."
+      }
+    ]
+  },
+  {
+    "id": 14,
+    "concept": "confidentiality",
+    "ko": "기밀",
+    "topic": "법률/규정",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "형용사",
+        "word": "confidential",
+        "mean": "기밀의, 비밀의",
+        "ex": "All client records are strictly confidential.",
+        "exKo": "모든 고객 기록은 엄격히 기밀이다."
+      },
+      {
+        "cat": "단어",
+        "pos": "명사",
+        "word": "confidentiality",
+        "mean": "기밀(성), 비밀 유지",
+        "ex": "Employees sign a confidentiality agreement on their first day.",
+        "exKo": "직원들은 첫날 기밀 유지 계약서에 서명한다."
+      }
+    ]
+  },
+  {
+    "id": 15,
+    "concept": "endorsement",
+    "ko": "지지·보증",
+    "topic": "마케팅/전략",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "동사",
+        "word": "endorse",
+        "mean": "지지하다, 보증하다, 홍보하다",
+        "ex": "A famous athlete endorsed the new running shoes.",
+        "exKo": "유명 운동선수가 그 새 운동화를 홍보했다."
+      },
+      {
+        "cat": "단어",
+        "pos": "명사",
+        "word": "endorsement",
+        "mean": "지지, (제품) 보증",
+        "ex": "The product's sales rose after a celebrity endorsement.",
+        "exKo": "유명인의 보증 광고 이후 그 제품의 매출이 올랐다."
+      }
+    ]
+  },
+  {
+    "id": 16,
+    "concept": "incentive",
+    "ko": "인센티브·장려책",
+    "topic": "마케팅/전략",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "명사",
+        "word": "incentive",
+        "mean": "장려책, 유인책",
+        "ex": "The company offers incentives for early sign-ups.",
+        "exKo": "그 회사는 조기 가입자에게 혜택을 제공한다."
+      },
+      {
+        "cat": "표현",
+        "pos": "표현",
+        "word": "offer an incentive",
+        "mean": "장려책을 제공하다",
+        "ex": "Stores often offer an incentive to attract new shoppers.",
+        "exKo": "매장들은 새 고객을 끌기 위해 흔히 혜택을 제공한다."
+      }
+    ]
+  },
+  {
+    "id": 17,
+    "concept": "subscription",
+    "ko": "구독",
+    "topic": "마케팅/전략",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "동사",
+        "word": "subscribe",
+        "mean": "구독하다, 가입하다",
+        "ex": "Thousands of readers subscribe to the newsletter.",
+        "exKo": "수천 명의 독자가 그 소식지를 구독한다."
+      },
+      {
+        "cat": "단어",
+        "pos": "명사",
+        "word": "subscription",
+        "mean": "구독(권), 정기 가입",
+        "ex": "Your annual subscription will renew automatically.",
+        "exKo": "귀하의 연간 구독은 자동으로 갱신됩니다."
+      },
+      {
+        "cat": "단어",
+        "pos": "명사",
+        "word": "subscriber",
+        "mean": "구독자, 가입자",
+        "ex": "The service reached one million subscribers this year.",
+        "exKo": "그 서비스는 올해 구독자 100만 명에 도달했다."
+      }
+    ]
+  },
+  {
+    "id": 18,
+    "concept": "outsourcing",
+    "ko": "외주·아웃소싱",
+    "topic": "제조/물류",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "동사",
+        "word": "outsource",
+        "mean": "외주를 주다, 외부에 위탁하다",
+        "ex": "The firm outsources its customer support overseas.",
+        "exKo": "그 회사는 고객 지원을 해외에 위탁한다."
+      },
+      {
+        "cat": "단어",
+        "pos": "명사",
+        "word": "outsourcing",
+        "mean": "외주, 아웃소싱",
+        "ex": "Outsourcing reduced the company's labor costs.",
+        "exKo": "외주화는 그 회사의 인건비를 줄였다."
+      }
+    ]
+  },
+  {
+    "id": 19,
+    "concept": "consolidation",
+    "ko": "통합",
+    "topic": "제조/물류",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "동사",
+        "word": "consolidate",
+        "mean": "통합하다, 합치다",
+        "ex": "We consolidated three warehouses into one.",
+        "exKo": "우리는 세 개의 창고를 하나로 통합했다."
+      },
+      {
+        "cat": "단어",
+        "pos": "명사",
+        "word": "consolidation",
+        "mean": "통합, 합병",
+        "ex": "The consolidation of branches saved on rent.",
+        "exKo": "지점 통합으로 임대료가 절감되었다."
+      }
+    ]
+  },
+  {
+    "id": 20,
+    "concept": "specification",
+    "ko": "명세·사양",
+    "topic": "제조/물류",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "동사",
+        "word": "specify",
+        "mean": "명시하다, 구체적으로 밝히다",
+        "ex": "Please specify the size and color when ordering.",
+        "exKo": "주문할 때 크기와 색상을 명시해 주세요."
+      },
+      {
+        "cat": "단어",
+        "pos": "형용사",
+        "word": "specific",
+        "mean": "구체적인, 특정한",
+        "ex": "The manual gives specific instructions for setup.",
+        "exKo": "그 설명서는 설치에 대한 구체적인 지침을 제공한다."
+      },
+      {
+        "cat": "단어",
+        "pos": "명사",
+        "word": "specification",
+        "mean": "명세(서), 사양",
+        "ex": "The parts were made to the client's specifications.",
+        "exKo": "그 부품들은 고객의 사양에 맞춰 제작되었다."
+      }
+    ]
+  },
+  {
+    "id": 21,
+    "concept": "dispatch",
+    "ko": "발송",
+    "topic": "제조/물류",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "동사",
+        "word": "dispatch",
+        "mean": "발송하다, 파견하다",
+        "ex": "The order was dispatched this morning.",
+        "exKo": "그 주문품은 오늘 아침에 발송되었다."
+      },
+      {
+        "cat": "단어",
+        "pos": "명사",
+        "word": "dispatch",
+        "mean": "발송, 파견",
+        "ex": "You will get an email upon dispatch of your package.",
+        "exKo": "소포 발송 시 이메일을 받게 됩니다."
+      }
+    ]
+  },
+  {
+    "id": 22,
+    "concept": "excess",
+    "ko": "초과·과잉",
+    "topic": "일반/독해",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "동사",
+        "word": "exceed",
+        "mean": "초과하다, 넘어서다",
+        "ex": "Sales exceeded our expectations this quarter.",
+        "exKo": "이번 분기 매출은 우리의 기대를 넘어섰다."
+      },
+      {
+        "cat": "단어",
+        "pos": "형용사",
+        "word": "excessive",
+        "mean": "과도한, 지나친",
+        "ex": "The report warned against excessive spending.",
+        "exKo": "그 보고서는 과도한 지출을 경고했다."
+      },
+      {
+        "cat": "단어",
+        "pos": "명사",
+        "word": "excess",
+        "mean": "초과(량), 과잉",
+        "ex": "Any excess will be returned to the supplier.",
+        "exKo": "초과분은 모두 공급업체에 반환될 것이다."
+      }
+    ]
+  },
+  {
+    "id": 23,
+    "concept": "precede vs proceed",
+    "ko": "앞서다 vs 진행하다(혼동)",
+    "topic": "혼동 어휘",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "동사",
+        "word": "precede",
+        "mean": "앞서다, ~보다 먼저 오다",
+        "ex": "A short training session precedes the main workshop.",
+        "exKo": "짧은 교육 시간이 본 워크숍에 앞서 진행된다."
+      },
+      {
+        "cat": "단어",
+        "pos": "동사",
+        "word": "proceed",
+        "mean": "진행하다, 계속 나아가다",
+        "ex": "After the break, we will proceed to the next item.",
+        "exKo": "휴식 후 다음 안건으로 진행하겠습니다."
+      }
+    ]
+  },
+  {
+    "id": 24,
+    "concept": "adapt vs adopt",
+    "ko": "적응하다 vs 채택하다(혼동)",
+    "topic": "혼동 어휘",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "동사",
+        "word": "adapt",
+        "mean": "적응하다, 조정하다",
+        "ex": "The team adapted quickly to the new software.",
+        "exKo": "그 팀은 새 소프트웨어에 빠르게 적응했다."
+      },
+      {
+        "cat": "단어",
+        "pos": "동사",
+        "word": "adopt",
+        "mean": "채택하다, 도입하다",
+        "ex": "The board adopted a new safety policy.",
+        "exKo": "이사회는 새 안전 정책을 채택했다."
+      }
+    ]
+  },
+  {
+    "id": 25,
+    "concept": "device vs devise",
+    "ko": "장치 vs 고안하다(혼동)",
+    "topic": "혼동 어휘",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "명사",
+        "word": "device",
+        "mean": "장치, 기기",
+        "ex": "The device automatically shuts off after an hour.",
+        "exKo": "그 기기는 한 시간 후 자동으로 꺼진다."
+      },
+      {
+        "cat": "단어",
+        "pos": "동사",
+        "word": "devise",
+        "mean": "고안하다, 궁리하다",
+        "ex": "Engineers devised a faster assembly method.",
+        "exKo": "엔지니어들은 더 빠른 조립 방법을 고안했다."
+      }
+    ]
+  }
+];

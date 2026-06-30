@@ -63,6 +63,85 @@ function Segmented<T extends string | number>({
   );
 }
 
+function ToggleSwitch({
+  checked,
+  onChange,
+  disabled = false,
+}: {
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => !disabled && onChange(!checked)}
+      style={{
+        width: 44,
+        height: 26,
+        borderRadius: 13,
+        border: "none",
+        cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.45 : 1,
+        background: checked ? C.gold : C.elevated,
+        position: "relative",
+        flexShrink: 0,
+      }}
+    >
+      <span
+        style={{
+          position: "absolute",
+          top: 3,
+          left: checked ? 21 : 3,
+          width: 20,
+          height: 20,
+          borderRadius: 10,
+          background: checked ? "#1A1408" : C.muted,
+          transition: "left 0.15s",
+        }}
+      />
+    </button>
+  );
+}
+
+function ContentToggleRow({
+  label,
+  desc,
+  checked,
+  onChange,
+  disabled = false,
+}: {
+  label: string;
+  desc: string;
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <label
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 12,
+        cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.55 : 1,
+      }}
+    >
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 13, color: C.text, fontWeight: 600 }}>{label}</div>
+        <div style={{ fontSize: 11, color: C.muted, marginTop: 2, lineHeight: 1.4 }}>
+          {desc}
+        </div>
+      </div>
+      <ToggleSwitch checked={checked} onChange={onChange} disabled={disabled} />
+    </label>
+  );
+}
+
 function SettingCard({
   title,
   desc,
@@ -107,10 +186,35 @@ export default function SettingsScreen({
   const patch = (partial: Partial<PlaybackSettings>) => {
     setSettings((prev) => {
       if (!prev) return prev;
-      const next = { ...prev, ...partial };
-      savePlaybackSettings(next);
-      return next;
+      const merged = { ...prev, ...partial };
+      const toggles = ["playWord", "playMean", "playExample"] as const;
+      if (toggles.some((k) => k in partial)) {
+        const nextToggles = {
+          playWord: merged.playWord,
+          playMean: merged.playMean,
+          playExample: merged.playExample,
+        };
+        if (
+          !nextToggles.playWord &&
+          !nextToggles.playMean &&
+          !nextToggles.playExample
+        ) {
+          return prev;
+        }
+      }
+      savePlaybackSettings(merged);
+      return merged;
     });
+  };
+
+  const patchContentToggle = (
+    key: "playWord" | "playMean" | "playExample",
+    next: boolean,
+  ) => {
+    if (!settings) return;
+    const merged = { ...settings, [key]: next };
+    if (!merged.playWord && !merged.playMean && !merged.playExample) return;
+    patch({ [key]: next });
   };
 
   if (!settings) {
@@ -173,6 +277,43 @@ export default function SettingsScreen({
           gap: 12,
         }}
       >
+        <SettingCard
+          title="재생 콘텐츠"
+          desc="자동 재생 시퀀스에 포함할 항목을 선택합니다. 최소 한 가지는 켜져 있어야 합니다."
+        >
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 14,
+            }}
+          >
+            <ContentToggleRow
+              label="단어 읽기"
+              desc="영어 word"
+              checked={settings.playWord}
+              onChange={(v) => patchContentToggle("playWord", v)}
+            />
+            <ContentToggleRow
+              label="뜻 읽기"
+              desc="한글 mean"
+              checked={settings.playMean}
+              onChange={(v) => patchContentToggle("playMean", v)}
+            />
+            <ContentToggleRow
+              label="예문 읽기"
+              desc={
+                hideExampleSettings
+                  ? "생활 문장에는 예문이 없습니다"
+                  : "영어 ex + 한글 exKo"
+              }
+              checked={settings.playExample}
+              onChange={(v) => patchContentToggle("playExample", v)}
+              disabled={hideExampleSettings}
+            />
+          </div>
+        </SettingCard>
+
         <SettingCard
           title="단어 반복 횟수"
           desc="영어 단어를 듣고 따라한 뒤, 설정 횟수만큼 반복합니다."
@@ -334,35 +475,10 @@ export default function SettingsScreen({
             }}
           >
             <span style={{ fontSize: 13, color: C.muted }}>구분 간격 사용</span>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={settings.itemGapEnabled}
-              onClick={() => patch({ itemGapEnabled: !settings.itemGapEnabled })}
-              style={{
-                width: 44,
-                height: 26,
-                borderRadius: 13,
-                border: "none",
-                cursor: "pointer",
-                background: settings.itemGapEnabled ? C.gold : C.elevated,
-                position: "relative",
-                flexShrink: 0,
-              }}
-            >
-              <span
-                style={{
-                  position: "absolute",
-                  top: 3,
-                  left: settings.itemGapEnabled ? 21 : 3,
-                  width: 20,
-                  height: 20,
-                  borderRadius: 10,
-                  background: settings.itemGapEnabled ? "#1A1408" : C.muted,
-                  transition: "left 0.15s",
-                }}
-              />
-            </button>
+            <ToggleSwitch
+              checked={settings.itemGapEnabled}
+              onChange={(v) => patch({ itemGapEnabled: v })}
+            />
           </label>
           {settings.itemGapEnabled && (
             <>

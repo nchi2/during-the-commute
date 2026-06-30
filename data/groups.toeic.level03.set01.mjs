@@ -1,0 +1,589 @@
+// 토익 Level 3 Set 01 (23개 그룹, 50개 항목)
+// 원본: data/sources/toeic_level3_set1.json
+// topic: 추후 주제별 필터용 (화면 미연결)
+export const TOEIC_LEVEL03_SET01_GROUPS = [
+  {
+    "id": 1,
+    "concept": "literal / literate / literary",
+    "ko": "문자 그대로의 / 글을 아는 / 문학의",
+    "topic": "파생어 뉘앙스",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "형용사",
+        "word": "literal",
+        "mean": "문자 그대로의, 직역의",
+        "ex": "A literal translation of the slogan sounded awkward, so the team reworded it for the local market.",
+        "exKo": "그 슬로건을 문자 그대로 번역하니 어색해서, 팀은 현지 시장에 맞게 표현을 바꿨다."
+      },
+      {
+        "cat": "단어",
+        "pos": "형용사",
+        "word": "literate",
+        "mean": "글을 읽고 쓸 줄 아는; (특정 분야에) 정통한",
+        "ex": "The training program aims to make every employee digitally literate.",
+        "exKo": "그 교육 프로그램은 모든 직원을 디지털에 정통하게 만드는 것을 목표로 한다."
+      },
+      {
+        "cat": "단어",
+        "pos": "형용사",
+        "word": "literary",
+        "mean": "문학의, 문학적인",
+        "ex": "The magazine is respected for its literary essays rather than its news coverage.",
+        "exKo": "그 잡지는 뉴스 보도보다 문학 에세이로 인정받는다."
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "concept": "credible / creditable / credulous",
+    "ko": "믿을 만한 / 칭찬할 만한 / 잘 속는",
+    "topic": "파생어 뉘앙스",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "형용사",
+        "word": "credible",
+        "mean": "믿을 만한, 신뢰할 수 있는",
+        "ex": "The committee dismissed the rumor because no credible source could confirm it.",
+        "exKo": "위원회는 믿을 만한 출처가 확인해 주지 못해 그 소문을 일축했다."
+      },
+      {
+        "cat": "단어",
+        "pos": "형용사",
+        "word": "creditable",
+        "mean": "칭찬할 만한, 훌륭한",
+        "ex": "Given the tight budget, the team's results were highly creditable.",
+        "exKo": "빠듯한 예산을 고려하면 그 팀의 성과는 매우 칭찬할 만했다."
+      },
+      {
+        "cat": "단어",
+        "pos": "형용사",
+        "word": "credulous",
+        "mean": "잘 속는, 쉽게 믿는",
+        "ex": "The scam targeted credulous investors with promises of guaranteed returns.",
+        "exKo": "그 사기는 보장된 수익을 약속하며 잘 속는 투자자들을 노렸다."
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "concept": "exhaustive / exhausting / exhausted",
+    "ko": "철저한 / 진을 빼는 / 기진맥진한",
+    "topic": "파생어 뉘앙스",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "형용사",
+        "word": "exhaustive",
+        "mean": "철저한, 빠짐없는",
+        "ex": "Before the merger, the firm carried out an exhaustive review of every contract.",
+        "exKo": "합병 전에 그 회사는 모든 계약에 대해 철저한 검토를 실시했다."
+      },
+      {
+        "cat": "단어",
+        "pos": "형용사",
+        "word": "exhausting",
+        "mean": "진을 빼는, 매우 피곤하게 하는",
+        "ex": "Negotiating across three time zones proved exhausting for the whole team.",
+        "exKo": "세 개의 시간대를 넘나드는 협상은 팀 전체에게 진을 빼는 일이었다."
+      },
+      {
+        "cat": "단어",
+        "pos": "형용사",
+        "word": "exhausted",
+        "mean": "기진맥진한, 다 써버린",
+        "ex": "After the launch, the staff were exhausted but pleased with the outcome.",
+        "exKo": "출시 후 직원들은 기진맥진했지만 결과에 만족했다."
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "concept": "negligible / negligent",
+    "ko": "무시해도 될 / 부주의한",
+    "topic": "파생어 뉘앙스",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "형용사",
+        "word": "negligible",
+        "mean": "무시해도 될 정도의, 사소한",
+        "ex": "The price increase had a negligible effect on overall demand.",
+        "exKo": "그 가격 인상은 전체 수요에 무시해도 될 정도의 영향만 미쳤다."
+      },
+      {
+        "cat": "단어",
+        "pos": "형용사",
+        "word": "negligent",
+        "mean": "부주의한, 태만한",
+        "ex": "The report found that the contractor had been negligent in following safety procedures.",
+        "exKo": "그 보고서는 도급업체가 안전 절차를 지키는 데 태만했다고 밝혔다."
+      }
+    ]
+  },
+  {
+    "id": 5,
+    "concept": "momentary / momentous",
+    "ko": "순간적인 / 중대한",
+    "topic": "형태 유사 함정",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "형용사",
+        "word": "momentary",
+        "mean": "순간적인, 잠깐의",
+        "ex": "There was a momentary delay before the system came back online.",
+        "exKo": "시스템이 다시 온라인 상태가 되기 전 잠깐의 지연이 있었다."
+      },
+      {
+        "cat": "단어",
+        "pos": "형용사",
+        "word": "momentous",
+        "mean": "중대한, 중요한",
+        "ex": "The board described the decision to go public as a momentous step for the company.",
+        "exKo": "이사회는 상장 결정을 회사에 중대한 한 걸음이라고 표현했다."
+      }
+    ]
+  },
+  {
+    "id": 6,
+    "concept": "beneficial / beneficiary",
+    "ko": "유익한 / 수혜자",
+    "topic": "파생어 뉘앙스",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "형용사",
+        "word": "beneficial",
+        "mean": "유익한, 이로운",
+        "ex": "The partnership has proved mutually beneficial to both firms.",
+        "exKo": "그 제휴는 두 회사 모두에게 서로 유익한 것으로 드러났다."
+      },
+      {
+        "cat": "단어",
+        "pos": "명사",
+        "word": "beneficiary",
+        "mean": "수혜자, 수익자",
+        "ex": "Employees can name a beneficiary for their retirement plan.",
+        "exKo": "직원들은 자신의 퇴직 연금에 대해 수익자를 지정할 수 있다."
+      }
+    ]
+  },
+  {
+    "id": 7,
+    "concept": "discreet / discrete",
+    "ko": "신중한 / 별개의",
+    "topic": "형태 유사 함정",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "형용사",
+        "word": "discreet",
+        "mean": "신중한, 분별 있는",
+        "ex": "Please be discreet when discussing the upcoming layoffs with colleagues.",
+        "exKo": "다가오는 정리해고를 동료들과 이야기할 때는 신중해 주세요."
+      },
+      {
+        "cat": "단어",
+        "pos": "형용사",
+        "word": "discrete",
+        "mean": "별개의, 분리된",
+        "ex": "The project was divided into four discrete phases, each with its own budget.",
+        "exKo": "그 프로젝트는 각기 예산이 있는 네 개의 별개 단계로 나뉘었다."
+      }
+    ]
+  },
+  {
+    "id": 8,
+    "concept": "ingenious / ingenuous",
+    "ko": "독창적인 / 순진한",
+    "topic": "형태 유사 함정",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "형용사",
+        "word": "ingenious",
+        "mean": "독창적인, 기발한",
+        "ex": "Engineers devised an ingenious way to cut packaging waste in half.",
+        "exKo": "엔지니어들은 포장 폐기물을 절반으로 줄이는 기발한 방법을 고안했다."
+      },
+      {
+        "cat": "단어",
+        "pos": "형용사",
+        "word": "ingenuous",
+        "mean": "순진한, 솔직한",
+        "ex": "His ingenuous remarks in the meeting revealed that he was new to negotiations.",
+        "exKo": "회의에서 그의 순진한 발언은 그가 협상에 처음임을 드러냈다."
+      }
+    ]
+  },
+  {
+    "id": 9,
+    "concept": "perspective / prospective",
+    "ko": "관점 / 장래의",
+    "topic": "형태 유사 함정",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "명사",
+        "word": "perspective",
+        "mean": "관점, 시각",
+        "ex": "From a customer's perspective, the new return policy is far more convenient.",
+        "exKo": "고객의 관점에서 보면 새 반품 정책은 훨씬 더 편리하다."
+      },
+      {
+        "cat": "단어",
+        "pos": "형용사",
+        "word": "prospective",
+        "mean": "장래의, 유망한, 가망이 있는",
+        "ex": "The brochure is designed to attract prospective clients at the trade fair.",
+        "exKo": "그 안내 책자는 무역 박람회에서 잠재 고객을 끌기 위해 만들어졌다."
+      }
+    ]
+  },
+  {
+    "id": 10,
+    "concept": "adverse / averse",
+    "ko": "불리한 / 꺼리는",
+    "topic": "형태 유사 함정",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "형용사",
+        "word": "adverse",
+        "mean": "불리한, 부정적인",
+        "ex": "The launch was postponed because of adverse weather conditions.",
+        "exKo": "출시는 악천후 때문에 연기되었다."
+      },
+      {
+        "cat": "단어",
+        "pos": "형용사",
+        "word": "averse",
+        "mean": "꺼리는, 싫어하는",
+        "ex": "The new director is not averse to taking risks when the potential reward is high.",
+        "exKo": "그 새 이사는 잠재적 보상이 클 때 위험을 감수하는 것을 꺼리지 않는다."
+      }
+    ]
+  },
+  {
+    "id": 11,
+    "concept": "elicit / illicit",
+    "ko": "끌어내다 / 불법의",
+    "topic": "형태 유사 함정",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "동사",
+        "word": "elicit",
+        "mean": "끌어내다, 이끌어내다",
+        "ex": "The survey was designed to elicit honest feedback from long-term customers.",
+        "exKo": "그 설문은 장기 고객으로부터 솔직한 의견을 끌어내기 위해 설계되었다."
+      },
+      {
+        "cat": "단어",
+        "pos": "형용사",
+        "word": "illicit",
+        "mean": "불법의, 부정한",
+        "ex": "The audit uncovered illicit transfers between two subsidiary accounts.",
+        "exKo": "그 감사는 두 자회사 계좌 사이의 불법 이체를 밝혀냈다."
+      }
+    ]
+  },
+  {
+    "id": 12,
+    "concept": "provision (다의어)",
+    "ko": "공급 / (계약) 조항",
+    "topic": "다의어",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "명사",
+        "word": "provision",
+        "mean": "공급, 제공; (계약·법률의) 조항",
+        "ex": "Under one provision of the contract, either party may cancel with 60 days' notice.",
+        "exKo": "그 계약의 한 조항에 따르면, 어느 쪽이든 60일 전에 통지하면 해지할 수 있다."
+      },
+      {
+        "cat": "단어",
+        "pos": "형용사",
+        "word": "provisional",
+        "mean": "임시의, 잠정적인",
+        "ex": "The committee gave provisional approval pending a final review.",
+        "exKo": "위원회는 최종 검토를 전제로 잠정 승인을 내렸다."
+      }
+    ]
+  },
+  {
+    "id": 13,
+    "concept": "capacity (다의어)",
+    "ko": "수용력·능력 / 자격",
+    "topic": "다의어",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "명사",
+        "word": "capacity",
+        "mean": "수용력, 용량; 능력; 자격, 입장",
+        "ex": "She attended the conference in her capacity as head of research.",
+        "exKo": "그녀는 연구 책임자 자격으로 그 회의에 참석했다."
+      },
+      {
+        "cat": "표현",
+        "pos": "표현",
+        "word": "at full capacity",
+        "mean": "최대 가동으로, 정원이 다 찬 상태로",
+        "ex": "The plant has been running at full capacity since demand surged.",
+        "exKo": "수요가 급증한 이후 그 공장은 최대 가동으로 돌아가고 있다."
+      }
+    ]
+  },
+  {
+    "id": 14,
+    "concept": "tender (다의어)",
+    "ko": "입찰 / 제출하다",
+    "topic": "다의어",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "명사",
+        "word": "tender",
+        "mean": "입찰, 입찰 제안서",
+        "ex": "Three firms submitted a tender for the construction project.",
+        "exKo": "세 회사가 그 건설 프로젝트에 입찰서를 제출했다."
+      },
+      {
+        "cat": "단어",
+        "pos": "동사",
+        "word": "tender",
+        "mean": "제출하다, (입찰·사직 등을) 정식으로 내다",
+        "ex": "After the dispute, the manager tendered his resignation.",
+        "exKo": "그 분쟁 이후 그 관리자는 사직서를 제출했다."
+      }
+    ]
+  },
+  {
+    "id": 15,
+    "concept": "table (다의어)",
+    "ko": "표 / 안건으로 상정하다",
+    "topic": "다의어",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "명사",
+        "word": "table",
+        "mean": "표, 목록; 탁자",
+        "ex": "The figures are summarized in the table on page three.",
+        "exKo": "그 수치는 3쪽의 표에 요약되어 있다."
+      },
+      {
+        "cat": "단어",
+        "pos": "동사",
+        "word": "table",
+        "mean": "(안건을) 상정하다, 회의에 부치다",
+        "ex": "The board agreed to table the proposal at the next quarterly meeting.",
+        "exKo": "이사회는 다음 분기 회의에서 그 제안을 안건으로 상정하기로 합의했다."
+      }
+    ]
+  },
+  {
+    "id": 16,
+    "concept": "endeavor",
+    "ko": "노력·시도",
+    "topic": "격식체/공문",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "동사",
+        "word": "endeavor",
+        "mean": "노력하다, 애쓰다",
+        "ex": "We endeavor to respond to all inquiries within one business day.",
+        "exKo": "저희는 모든 문의에 영업일 기준 하루 안에 답하고자 노력합니다."
+      },
+      {
+        "cat": "단어",
+        "pos": "명사",
+        "word": "endeavor",
+        "mean": "노력, 시도",
+        "ex": "The charity drive was a collective endeavor involving every department.",
+        "exKo": "그 자선 모금은 모든 부서가 참여한 공동의 노력이었다."
+      }
+    ]
+  },
+  {
+    "id": 17,
+    "concept": "ascertain / deem",
+    "ko": "확인하다 / 간주하다",
+    "topic": "격식체/공문",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "동사",
+        "word": "ascertain",
+        "mean": "확인하다, 알아내다",
+        "ex": "Investigators worked to ascertain the exact cause of the equipment failure.",
+        "exKo": "조사관들은 장비 고장의 정확한 원인을 알아내기 위해 노력했다."
+      },
+      {
+        "cat": "단어",
+        "pos": "동사",
+        "word": "deem",
+        "mean": "~로 여기다, 간주하다",
+        "ex": "Any application received after the deadline will be deemed invalid.",
+        "exKo": "마감 이후 접수된 지원서는 무효로 간주된다."
+      }
+    ]
+  },
+  {
+    "id": 18,
+    "concept": "formal connectors",
+    "ko": "격식체 연결어",
+    "topic": "격식체/공문",
+    "words": [
+      {
+        "cat": "연결",
+        "pos": "전치사",
+        "word": "notwithstanding",
+        "mean": "~에도 불구하고",
+        "ex": "Notwithstanding the delays, the project was completed within budget.",
+        "exKo": "지연에도 불구하고 그 프로젝트는 예산 내에 완료되었다."
+      },
+      {
+        "cat": "연결",
+        "pos": "연결",
+        "word": "henceforth",
+        "mean": "이후로, 지금부터",
+        "ex": "Henceforth, all expense claims must be submitted through the online portal.",
+        "exKo": "이후로 모든 경비 청구는 온라인 포털을 통해 제출되어야 한다."
+      },
+      {
+        "cat": "연결",
+        "pos": "연결",
+        "word": "hereby",
+        "mean": "이로써, 이에 의하여",
+        "ex": "The undersigned hereby agrees to the terms set out above.",
+        "exKo": "아래 서명인은 이로써 위에 명시된 조건에 동의합니다."
+      }
+    ]
+  },
+  {
+    "id": 19,
+    "concept": "pursuant / aforementioned",
+    "ko": "~에 의거하여 / 앞서 언급한",
+    "topic": "격식체/공문",
+    "words": [
+      {
+        "cat": "표현",
+        "pos": "표현",
+        "word": "pursuant to",
+        "mean": "~에 의거하여, ~에 따라",
+        "ex": "Pursuant to the agreement, the vendor must provide quarterly reports.",
+        "exKo": "그 합의에 의거하여, 납품업체는 분기별 보고서를 제공해야 한다."
+      },
+      {
+        "cat": "단어",
+        "pos": "형용사",
+        "word": "aforementioned",
+        "mean": "앞서 언급한",
+        "ex": "The aforementioned clauses take precedence over any verbal agreement.",
+        "exKo": "앞서 언급한 조항들은 어떠한 구두 합의보다 우선한다."
+      }
+    ]
+  },
+  {
+    "id": 20,
+    "concept": "consecutive / successive",
+    "ko": "연속적인 / 잇따른",
+    "topic": "유사어 구분",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "형용사",
+        "word": "consecutive",
+        "mean": "연속적인, 연이은",
+        "ex": "Sales have risen for six consecutive quarters.",
+        "exKo": "매출이 6분기 연속으로 상승했다."
+      },
+      {
+        "cat": "단어",
+        "pos": "형용사",
+        "word": "successive",
+        "mean": "잇따른, 연속되는",
+        "ex": "Successive managers tried, and failed, to turn the branch around.",
+        "exKo": "잇따른 관리자들이 그 지점을 회생시키려 했으나 실패했다."
+      }
+    ]
+  },
+  {
+    "id": 21,
+    "concept": "inevitable",
+    "ko": "불가피한",
+    "topic": "일반/독해",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "형용사",
+        "word": "inevitable",
+        "mean": "불가피한, 필연적인",
+        "ex": "As the market shifted online, some store closures became inevitable.",
+        "exKo": "시장이 온라인으로 옮겨가면서 일부 매장 폐쇄는 불가피해졌다."
+      },
+      {
+        "cat": "단어",
+        "pos": "부사",
+        "word": "inevitably",
+        "mean": "불가피하게, 필연적으로",
+        "ex": "Rapid expansion inevitably puts a strain on existing staff.",
+        "exKo": "급속한 확장은 필연적으로 기존 직원에게 부담을 준다."
+      }
+    ]
+  },
+  {
+    "id": 22,
+    "concept": "prevalent",
+    "ko": "널리 퍼진",
+    "topic": "일반/독해",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "형용사",
+        "word": "prevalent",
+        "mean": "널리 퍼진, 만연한",
+        "ex": "Remote work has become far more prevalent across the industry.",
+        "exKo": "원격 근무는 그 업계 전반에 훨씬 더 널리 퍼졌다."
+      },
+      {
+        "cat": "단어",
+        "pos": "명사",
+        "word": "prevalence",
+        "mean": "널리 퍼짐, 유행",
+        "ex": "The report notes the growing prevalence of mobile payments.",
+        "exKo": "그 보고서는 모바일 결제가 점점 더 널리 퍼지고 있음을 지적한다."
+      }
+    ]
+  },
+  {
+    "id": 23,
+    "concept": "scrutiny",
+    "ko": "정밀 조사",
+    "topic": "격식체/공문",
+    "words": [
+      {
+        "cat": "단어",
+        "pos": "동사",
+        "word": "scrutinize",
+        "mean": "면밀히 살피다, 정밀 조사하다",
+        "ex": "Auditors scrutinized every entry in the company's ledgers.",
+        "exKo": "감사인들은 회사 장부의 모든 항목을 면밀히 살폈다."
+      },
+      {
+        "cat": "단어",
+        "pos": "명사",
+        "word": "scrutiny",
+        "mean": "정밀 조사, 철저한 검토",
+        "ex": "The proposed merger has come under intense regulatory scrutiny.",
+        "exKo": "그 합병안은 규제 당국의 강도 높은 정밀 조사를 받게 되었다."
+      }
+    ]
+  }
+];

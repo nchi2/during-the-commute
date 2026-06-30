@@ -19,6 +19,8 @@ const C = {
 
 const ACTION_WIDTH = 52;
 const SNAP_THRESHOLD = 30;
+/** PC 마우스 클릭 시 미세 이동 — 이보다 작으면 탭/클릭으로 처리 */
+const CLICK_SLOP = 10;
 
 type Props = {
   children: ReactNode;
@@ -39,7 +41,7 @@ export default function SwipeableWordRow({
   const dragStartOffset = useRef(0);
   const offsetRef = useRef(0);
   const draggingRef = useRef(false);
-  const moved = useRef(false);
+  const suppressClickRef = useRef(false);
 
   offsetRef.current = offsetX;
 
@@ -56,7 +58,7 @@ export default function SwipeableWordRow({
     if (e.button !== 0) return;
     draggingRef.current = true;
     setIsDragging(true);
-    moved.current = false;
+    suppressClickRef.current = false;
     dragStartX.current = e.clientX;
     dragStartOffset.current = offsetRef.current;
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
@@ -65,7 +67,6 @@ export default function SwipeableWordRow({
   const onPointerMove = (e: ReactPointerEvent) => {
     if (!draggingRef.current) return;
     const delta = e.clientX - dragStartX.current;
-    if (Math.abs(delta) > 4) moved.current = true;
     const next = Math.min(
       0,
       Math.max(-ACTION_WIDTH, dragStartOffset.current + delta),
@@ -79,13 +80,24 @@ export default function SwipeableWordRow({
     draggingRef.current = false;
     setIsDragging(false);
     (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+
+    const totalMove = Math.abs(e.clientX - dragStartX.current);
+    const wasClick = totalMove < CLICK_SLOP;
+
     if (offsetRef.current < -SNAP_THRESHOLD) snapOpen();
     else snapClosed();
+
+    if (wasClick && onClick) {
+      suppressClickRef.current = true;
+      onClick();
+    } else if (!wasClick) {
+      suppressClickRef.current = true;
+    }
   };
 
   const handleRowClick = () => {
-    if (moved.current) {
-      moved.current = false;
+    if (suppressClickRef.current) {
+      suppressClickRef.current = false;
       return;
     }
     onClick?.();

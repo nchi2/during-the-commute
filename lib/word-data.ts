@@ -1,5 +1,5 @@
 import { GROUPS } from "@/data/groups.mjs";
-import { MOM_LEVELS } from "@/data/groups.mom.mjs";
+import { LIFE_SENTENCE_LEVELS } from "@/data/groups.life-sentences.mjs";
 import { TOEIC_LEVELS } from "@/data/groups.toeic.mjs";
 import type { LevelId } from "@/lib/storage";
 import type { StudyItem } from "@/lib/playlists";
@@ -20,7 +20,7 @@ export type WordGroup = {
   words: GroupWord[];
 };
 
-export type MomLevelEntry = {
+export type LifeSentenceLevelEntry = {
   id: string;
   label: string;
   desc: string;
@@ -32,6 +32,7 @@ export type ToeicSetEntry = {
   id: string;
   label: string;
   desc: string;
+  description?: string;
   groups: WordGroup[];
   active: boolean;
 };
@@ -44,19 +45,22 @@ export type ToeicLevelEntry = {
   active: boolean;
 };
 
-export type MomLevelId = (typeof MOM_LEVELS)[number]["id"];
+export type LifeSentenceLevelId =
+  (typeof LIFE_SENTENCE_LEVELS)[number]["id"];
 export type ToeicLevelId = (typeof TOEIC_LEVELS)[number]["id"];
 
-export function getMomLevels(): MomLevelEntry[] {
-  return MOM_LEVELS as MomLevelEntry[];
+export function getLifeSentenceLevels(): LifeSentenceLevelEntry[] {
+  return LIFE_SENTENCE_LEVELS as LifeSentenceLevelEntry[];
 }
 
-export function getMomLevel(id: string): MomLevelEntry | undefined {
-  return getMomLevels().find((l) => l.id === id);
+export function getLifeSentenceLevel(
+  id: string,
+): LifeSentenceLevelEntry | undefined {
+  return getLifeSentenceLevels().find((l) => l.id === id);
 }
 
-export function getMomLevelWordCount(id: string): number {
-  const entry = getMomLevel(id);
+export function getLifeSentenceLevelWordCount(id: string): number {
+  const entry = getLifeSentenceLevel(id);
   if (!entry) return 0;
   return entry.groups.reduce((n, g) => n + g.words.length, 0);
 }
@@ -94,8 +98,10 @@ export function getGroupsForLevel(level: LevelId): WordGroup[] {
   return GROUPS as WordGroup[];
 }
 
-export function getMomStudyItems(momLevelId: string): StudyItem[] {
-  const entry = getMomLevel(momLevelId);
+export function getLifeSentenceStudyItems(
+  lifeSentenceLevelId: string,
+): StudyItem[] {
+  const entry = getLifeSentenceLevel(lifeSentenceLevelId);
   if (!entry?.active) return [];
   return groupsToStudyItems(entry.groups);
 }
@@ -127,5 +133,6 @@ export function isSimpleListenLevel(level: LevelId): boolean {
   return level === "eomuni";
 }
 
-export const MOM_LEVEL01_WORD_COUNT = getMomLevelWordCount("level01");
+export const LIFE_SENTENCE_LEVEL01_WORD_COUNT =
+  getLifeSentenceLevelWordCount("level01");
 export const TOEIC_LEVEL01_WORD_COUNT = getToeicLevelWordCount("level01");
